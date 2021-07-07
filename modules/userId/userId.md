@@ -254,6 +254,12 @@ pbjs.setConfig({
                 name: "_dpes_id",
                 expires: 90
             }
+        },
+        {
+            name: 'imuid',
+            params: {
+                cid: 3947 // Set your real intimatemerger CID here for production
+            }
         }],
         syncDelay: 5000
     }
