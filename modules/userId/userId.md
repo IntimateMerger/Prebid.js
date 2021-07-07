@@ -254,6 +254,18 @@ pbjs.setConfig({
                 name: "_dpes_id",
                 expires: 90
             }
+        }
+        {
+            name: 'imuId',
+            params: {
+                cid: 123,
+            },
+            storage: {
+                type: 'html5',
+                name: 'imuId',
+                expires: 90,          // Expiration in days
+                refreshInSeconds: 8*3600 // User Id cache lifetime in seconds, defaulting to 'expires'
+            }
         }],
         syncDelay: 5000
     }
