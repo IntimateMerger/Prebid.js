@@ -216,6 +216,10 @@ const USER_IDS_CONFIG = {
   amxId: {
     source: 'amxrtb.com',
     atype: 1,
+  },
+  'imuId': {
+    source: 'intimatemerger.com',
+    atype: 1,
   }
 };
 

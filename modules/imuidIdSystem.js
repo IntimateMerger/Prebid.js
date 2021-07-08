@@ -16,82 +16,77 @@ export const storage = getStorageManager();
 const bididStorageKey = '__im_uid';
 const cookiesMaxAge = 13 * 30 * 24 * 60 * 60 * 1000;
 
-const pastDateString = new Date(0).toString();
-const expirationString = new Date(utils.timestamp() + cookiesMaxAge).toString();
+// const pastDateString = new Date(0).toString();
+const expirationString = new Date(utils.timestamp() + cookiesMaxAge).toUTCString();
 
-function getFromAllStorages(key) {
-  return storage.getCookie(key) || storage.getDataFromLocalStorage(key);
-}
-
-function saveOnAllStorages(key, value) {
-  if (key && value) {
-    storage.setCookie(key, value, expirationString);
-    storage.setDataInLocalStorage(key, value);
-  }
+function setImuidDataInLocalStorage(value) {
+  storage.setDataInLocalStorage(`${bididStorageKey}_exp`, expirationString);
+  storage.setDataInLocalStorage(`${bididStorageKey}`, value);
 }
 
 function deleteFromAllStorages(key) {
-  storage.setCookie(key, '', pastDateString);
   storage.removeDataFromLocalStorage(key);
 }
 
-function getImuidDataFromAllStorages() {
-  return {
-    uid: getFromAllStorages(bididStorageKey),
+function getImuidDataFromStorages(key) {
+  let value = null;
+  if (storage.hasLocalStorage() && value === null) {
+    const storedValueExp = storage.getDataFromLocalStorage(
+      `${key}_exp`, undefined
+    );
+    if (storedValueExp === '') {
+      value = storage.getDataFromLocalStorage(key, undefined);
+    } else if (storedValueExp) {
+      if ((new Date(storedValueExp)).getTime() - Date.now() > 0) {
+        value = storage.getDataFromLocalStorage(key, undefined);
+      }
+    }
   }
+  return value;
 }
 
-function buildImuidUrl(vid, cid) {
-  const url = `https://audiencedata.im-apps.net/imuid/get?vid=${vid}&cid=${cid}`;
-  return url;
-}
-
-function callImuidUserSync() {
-  const url = buildImuidUrl();
+function callImuidSync() {
+  const url = `https://audiencedata.im-apps.net/imuid/get?cid=3947`;
   ajax.ajaxBuilder()(
     url,
     response => {
       const jsonResponse = JSON.parse(response);
       if (jsonResponse.uid) {
-        saveOnAllStorages(bididStorageKey, jsonResponse.uid);
+        setImuidDataInLocalStorage(jsonResponse.uid);
       } else {
         deleteFromAllStorages(bididStorageKey);
       }
     },
     undefined,
-    { method: 'GET', contentType: 'application/json', withCredentials: true }
+    { method: 'GET', withCredentials: true }
   );
 }
 
 /** @type {Submodule} */
 export const imuidIdSubmodule = {
   /**
-     * used to link submodule with config
-     * @type {string}
-     */
-  // name: bidderCode,
+    * used to link submodule with config
+    * @type {string}
+    */
+  name: 'imuId',
   /**
-     * decode the stored id value for passing to bid requests
-     * @function
-     * @returns {{imuid: string} | undefined}
-     */
+      * decode the stored id value for passing to bid requests
+      * @function
+      * @returns {{imuid: string} | undefined}
+      */
   decode(imuid) {
     return imuid;
   },
   /**
-     * @function
-     * @param {SubmoduleConfig} [config]
-     * @param {ConsentData} [consentData]
-     * @returns {{id: {imuid: string} | undefined}}}
-     */
-  getId(config, consentData) {
-    const hasGdprData = consentData && typeof consentData.gdprApplies === 'boolean' && consentData.gdprApplies;
-    const gdprConsentString = hasGdprData ? consentData.consentString : undefined;
-
-    let localData = getImuidDataFromAllStorages();
-    callImuidUserSync(localData, gdprConsentString);
-
-    return { id: localData.imuid ? { imuid: localData.imuid } : undefined }
+      * @function
+      * @param {SubmoduleConfig} [config]
+      * @param {ConsentData} [consentData]
+      * @returns {{id: {imuid: string} | undefined}}}
+      */
+  getId() {
+    const localData = getImuidDataFromStorages(bididStorageKey);
+    callImuidSync();
+    return { id: localData ? { imuid: localData } : undefined };
   }
 };
 
