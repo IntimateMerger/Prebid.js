@@ -256,13 +256,13 @@ pbjs.setConfig({
             }
         }
         {
-            name: 'imuId',
+            name: 'imuid',
             params: {
                 cid: 123,
             },
             storage: {
                 type: 'html5',
-                name: 'imuId',
+                name: 'imuid',
                 expires: 90,          // Expiration in days
                 refreshInSeconds: 8*3600 // User Id cache lifetime in seconds, defaulting to 'expires'
             }
