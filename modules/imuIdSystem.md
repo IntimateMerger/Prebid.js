@@ -18,7 +18,7 @@ pbjs.setConfig({
     userIds: [{
       name: 'imuid',
       params: {
-        cid 3947 // change to the Partner Number you received from IntimateMerger
+        cid 5126 // Set your Intimate Merger Customer ID here for production
         }
       }
     }]
@@ -28,7 +28,7 @@ pbjs.setConfig({
 
 | Param under userSync.userIds[] | Scope | Type | Description | Example |
 | --- | --- | --- | --- | --- |
-| name | Required | String | Module identification: `"imuid"` | `"imuid"` |
-| params | Required | Object | Configuration specifications for the IntimateMerger module. | |
-| params.cid | Required | String | This is the IntimateMerger Partner Number obtained via IntimateMerger registration. | `3947` |
-| params.url | Optional | String | If you use it in test or specify a value from Intimate Merger, it will overwrite the default url. | `"https://somedomain.some/somepath?args"` |
+| name | Required | String | The name of this module. | `"imuid"` |
+| params | Required | Object | Details of module params. | |
+| params.cid | Required | String | This is the Customer ID value obtained via Intimate Merger. | `5126` |
+| params.url | Optional | String | Use this to change the default endpoint URL. | `"https://somedomain.some/somepath?args"` |

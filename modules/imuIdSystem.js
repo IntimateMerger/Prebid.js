@@ -15,25 +15,27 @@ export const storage = getStorageManager();
 const storageKey = '__im_uid';
 const cookieKey = '_im_vid';
 const maxAge = 30 * 60 * 1000; // about 30 minites
-const cookiesMaxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
-const expirationString = new Date(utils.timestamp() + maxAge).toUTCString();
+const cookiesMaxAge = 97200000000; //  37 months ((365 * 3 + 30) * 24 * 60 * 60 * 1000)
+const expirationString = new Date(utils.timestamp()).toUTCString();
 const cookiesExpirationString = new Date(utils.timestamp() + cookiesMaxAge).toUTCString();
 
 function setImuidDataInLocalStorage(value) {
   storage.setDataInLocalStorage(storageKey, value);
-  storage.setDataInLocalStorage(`${storageKey}_exp`, expirationString);
+  storage.setDataInLocalStorage(`${storageKey}_mt`, expirationString);
 }
 
-function deleteFromAllStorages() {
+function deleteFromAllLocalStorages() {
   storage.removeDataFromLocalStorage(storageKey);
-  storage.removeDataFromLocalStorage(`${storageKey}_exp`);
+  storage.removeDataFromLocalStorage(`${storageKey}_mt`);
 }
 
-function getImuidDataFromStorages() {
+function getLocalData() {
+  const mt = storage.getDataFromLocalStorage(`${storageKey}_mt`);
+  const expired = mt && Date.now() - (new Date(mt)).getTime() > maxAge;
   return {
-    id: storage.getDataFromLocalStorage(storageKey, undefined),
+    id: storage.getDataFromLocalStorage(storageKey),
     vid: storage.getCookie(cookieKey),
-    exp: storage.getDataFromLocalStorage(`${storageKey}_exp`, undefined)
+    expired: expired
   };
 }
 
@@ -55,7 +57,7 @@ function callImuidSync(cid, vid, url) {
           storage.setCookie(cookieKey, jsonResponse.vid, cookiesExpirationString);
         }
       } else {
-        deleteFromAllStorages(storageKey);
+        deleteFromAllLocalStorages(storageKey);
       }
     },
     undefined,
@@ -87,18 +89,17 @@ export const imuIdSubmodule = {
     const configParams = (config && config.params) || {};
     if (!configParams || typeof configParams.cid !== 'number') {
       utils.logError('User ID - imuid submodule requires a valid cid to be defined');
-      return;
+      return undefined;
     }
-    const localData = getImuidDataFromStorages();
+    const localData = getLocalData();
     if (!localData.id) {
       callImuidSync(configParams.cid, localData.vid, configParams.url);
       return undefined;
     }
-    if (localData.exp && (new Date(localData.exp)).getTime() - Date.now() > 0) {
-      return {id: localData.id};
+    if (localData.expired) {
+      callImuidSync();
     }
-    callImuidSync(configParams.cid, localData.vid, configParams.url);
-    return {id: localData.id};
+    return { id: localData.id };
   }
 };
 
