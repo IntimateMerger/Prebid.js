@@ -1,17 +1,6 @@
 import { imuIdSubmodule, storage } from 'modules/imuIdSystem.js';
-import * as utils from 'src/utils.js';
-import * as ajaxLib from 'src/ajax.js';
-
-const pastDateString = new Date(0).toString()
-
-function mockResponse(responseText, fakeResponse = (url, callback) => callback(responseText)) {
-  return function() {
-    return fakeResponse;
-  }
-}
 
 describe('imuId module', function () {
-  const nowTimestamp = new Date().getTime();
   let getLocalStorageStub;
 
   beforeEach(function (done) {
@@ -25,8 +14,7 @@ describe('imuId module', function () {
 
   const storageTestCases = [
     { localStorage: 'uid2', expected: 'uid2' },
-    { localStorage: 'uid', expected: 'uid' },
-    { localStorage: undefined, expected: undefined },
+    { localStorage: 'uid', expected: 'uid' }
   ]
 
   const configParamTestCase = {
@@ -38,7 +26,7 @@ describe('imuId module', function () {
   storageTestCases.forEach(testCase => it('getId() should return the uid when it exists in local storages', function () {
     getLocalStorageStub.withArgs('__im_uid').returns(testCase.localStorage);
     const id = imuIdSubmodule.getId(configParamTestCase);
-    expect(id).to.be.deep.equal(testCase.expected ? {id: testCase.expected} : undefined);
+    expect(id).to.be.deep.equal({id: testCase.expected});
   }))
 
   it('decode() should return the uid when it exists in local storages', function () {

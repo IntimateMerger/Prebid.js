@@ -6,7 +6,7 @@
  */
 
 import * as utils from '../src/utils.js'
-import * as ajax from '../src/ajax.js'
+import { ajax } from '../src/ajax.js'
 import { submodule } from '../src/hook.js';
 import { getStorageManager } from '../src/storageManager.js';
 
@@ -39,6 +39,20 @@ function getLocalData() {
   };
 }
 
+function syncSuccessProcess(jsonResponse) {
+  if (!jsonResponse) {
+    return;
+  }
+  if (jsonResponse.uid) {
+    setImuidDataInLocalStorage(jsonResponse.uid);
+    if (jsonResponse.vid) {
+      storage.setCookie(cookieKey, jsonResponse.vid, cookiesExpirationString);
+    }
+  } else {
+    deleteFromAllLocalStorages(storageKey);
+  }
+}
+
 function callImuidSync(cid, vid, url) {
   let syncUrl = `https://audiencedata.im-apps.net/imuid/get?cid=${cid}`;
   if (url) {
@@ -47,17 +61,14 @@ function callImuidSync(cid, vid, url) {
   if (vid) {
     syncUrl += `&vid=${vid}`;
   }
-  ajax.ajaxBuilder()(
+  ajax(
     syncUrl,
-    response => {
-      const jsonResponse = JSON.parse(response);
-      if (jsonResponse.uid) {
-        setImuidDataInLocalStorage(jsonResponse.uid);
-        if (jsonResponse.vid) {
-          storage.setCookie(cookieKey, jsonResponse.vid, cookiesExpirationString);
-        }
-      } else {
-        deleteFromAllLocalStorages(storageKey);
+    {
+      success: response => {
+        syncSuccessProcess(JSON.parse(response));
+      },
+      error: error => {
+        utils.logError('ID fetch encountered an error', error);
       }
     },
     undefined,
@@ -78,7 +89,10 @@ export const imuIdSubmodule = {
    * @returns {{imuid: string} | undefined}
    */
   decode(id) {
-    return {imuid: id};
+    if (typeof id === 'string') {
+      return {imuid: id};
+    }
+    return {imuid: id.uid};
   },
   /**
    * @function
@@ -92,14 +106,36 @@ export const imuIdSubmodule = {
       return undefined;
     }
     const localData = getLocalData();
+
     if (!localData.id) {
-      callImuidSync(configParams.cid, localData.vid, configParams.url);
-      return undefined;
+      let syncUrl = `https://audiencedata.im-apps.net/imuid/get?cid=${configParams.cid}`;
+      if (configParams.url) {
+        syncUrl = `${configParams.url}?cid=${configParams.cid}`;
+      }
+      if (configParams.vid) {
+        syncUrl += `&vid=${configParams.vid}`;
+      }
+
+      const resp = function (callback) {
+        const callbacks = {
+          success: response => {
+            const jsonResponse = JSON.parse(response);
+            syncSuccessProcess(jsonResponse);
+            callback(jsonResponse);
+          },
+          error: error => {
+            utils.logError('ID fetch encountered an error', error);
+            callback();
+          }
+        };
+        ajax(syncUrl, callbacks, undefined, {method: 'GET', withCredentials: true});
+      };
+      return {callback: resp};
     }
     if (localData.expired) {
       callImuidSync();
     }
-    return { id: localData.id };
+    return {id: localData.id};
   }
 };
 

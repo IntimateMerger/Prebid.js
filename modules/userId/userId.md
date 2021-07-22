@@ -258,7 +258,7 @@ pbjs.setConfig({
         {
             name: 'imuid',
             params: {
-                cid: 3947 // Set your real intimatemerger CID here for production
+                cid: 5126 // Set your Intimate Merger Customer ID here for production
             }
         }],
         syncDelay: 5000
