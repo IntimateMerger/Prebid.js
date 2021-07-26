@@ -1,16 +1,17 @@
-## IntimateMerger User ID Submodule
+## Intimate Merger User ID Submodule
 
-IntimateMerger UID - https://intimatemerger.com/r/uid
+IM-UID is a universal identifier provided by Intimate Merger.
+The integration of [IM-UID](https://intimatemerger.com/r/uid) into Prebid.js consists of this module.
 
-## IntimateMerger UID Configuration
+## Building Prebid with IM-UID Support
 
-Enable by adding the IntimateMerger submodule to your Prebid.js package with:
+First, make sure to add the Intimate Merger submodule to your Prebid.js package with:
 
 ```
 gulp build --modules=imuIdSystem, userId
 ```
 
-Module activation and configuration:
+The following configuration parameters are available:
 
 ```javascript
 pbjs.setConfig({
@@ -31,4 +32,4 @@ pbjs.setConfig({
 | name | Required | String | The name of this module. | `"imuid"` |
 | params | Required | Object | Details of module params. | |
 | params.cid | Required | String | This is the Customer ID value obtained via Intimate Merger. | `5126` |
-| params.url | Optional | String | Use this to change the default endpoint URL. | `"https://somedomain.some/somepath?args"` |
+| params.url | Optional | String | Use this to change the default endpoint URL. | `"https://example.com/some/api"` |

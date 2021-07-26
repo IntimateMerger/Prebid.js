@@ -14,24 +14,25 @@ export const storage = getStorageManager();
 
 const storageKey = '__im_uid';
 const cookieKey = '_im_vid';
-const maxAge = 30 * 60 * 1000; // about 30 minites
-const cookiesMaxAge = 97200000000; //  37 months ((365 * 3 + 30) * 24 * 60 * 60 * 1000)
-const expirationString = new Date(utils.timestamp()).toUTCString();
-const cookiesExpirationString = new Date(utils.timestamp() + cookiesMaxAge).toUTCString();
+const storageMaxAge = 1800000; // 30 minites (30 * 60 * 1000)
+const cookiesMaxAge = 97200000000; // 37 months ((365 * 3 + 30) * 24 * 60 * 60 * 1000)
 
-function setImuidDataInLocalStorage(value) {
+function setImDataInLocalStorage(value) {
   storage.setDataInLocalStorage(storageKey, value);
-  storage.setDataInLocalStorage(`${storageKey}_mt`, expirationString);
+  storage.setDataInLocalStorage(`${storageKey}_mt`, new Date(utils.timestamp()).toUTCString());
 }
 
-function deleteFromAllLocalStorages() {
+function removeImDataFromLocalStorage() {
   storage.removeDataFromLocalStorage(storageKey);
   storage.removeDataFromLocalStorage(`${storageKey}_mt`);
 }
 
 function getLocalData() {
   const mt = storage.getDataFromLocalStorage(`${storageKey}_mt`);
-  const expired = mt && Date.now() - (new Date(mt)).getTime() > maxAge;
+  let expired = true;
+  if (Date.parse(mt) && Date.now() - (new Date(mt)).getTime() < storageMaxAge) {
+    expired = false;
+  }
   return {
     id: storage.getDataFromLocalStorage(storageKey),
     vid: storage.getCookie(cookieKey),
@@ -44,36 +45,41 @@ function syncSuccessProcess(jsonResponse) {
     return;
   }
   if (jsonResponse.uid) {
-    setImuidDataInLocalStorage(jsonResponse.uid);
+    setImDataInLocalStorage(jsonResponse.uid);
     if (jsonResponse.vid) {
-      storage.setCookie(cookieKey, jsonResponse.vid, cookiesExpirationString);
+      storage.setCookie(cookieKey, jsonResponse.vid, new Date(utils.timestamp() + cookiesMaxAge).toUTCString());
     }
   } else {
-    deleteFromAllLocalStorages(storageKey);
+    removeImDataFromLocalStorage(storageKey);
   }
 }
 
-function callImuidSync(cid, vid, url) {
-  let syncUrl = `https://audiencedata.im-apps.net/imuid/get?cid=${cid}`;
-  if (url) {
-    syncUrl = `${url}?cid=${cid}`;
-  }
-  if (vid) {
-    syncUrl += `&vid=${vid}`;
-  }
-  ajax(
-    syncUrl,
-    {
+function callImuidSync(syncUrl) {
+  return function (callback) {
+    const callbacks = {
       success: response => {
-        syncSuccessProcess(JSON.parse(response));
+        let responseObj;
+        if (response) {
+          try {
+            responseObj = JSON.parse(response);
+            syncSuccessProcess(responseObj);
+          } catch (error) {
+            utils.logError('User ID - imuid submodule: ' + error);
+          }
+        }
+        if (callback) {
+          callback(responseObj);
+        }
       },
       error: error => {
         utils.logError('ID fetch encountered an error', error);
+        if (callback) {
+          callback();
+        }
       }
-    },
-    undefined,
-    { method: 'GET', withCredentials: true }
-  );
+    };
+    ajax(syncUrl, callbacks, undefined, {method: 'GET', withCredentials: true});
+  };
 }
 
 /** @type {Submodule} */
@@ -89,10 +95,10 @@ export const imuIdSubmodule = {
    * @returns {{imuid: string} | undefined}
    */
   decode(id) {
-    if (typeof id === 'string') {
+    if (id && typeof id === 'string') {
       return {imuid: id};
     }
-    return {imuid: id.uid};
+    return undefined;
   },
   /**
    * @function
@@ -106,34 +112,19 @@ export const imuIdSubmodule = {
       return undefined;
     }
     const localData = getLocalData();
+    let syncUrl = `https://audiencedata.im-apps.net/imuid/get?cid=${configParams.cid}`;
+    if (configParams.url) {
+      syncUrl = `${configParams.url}?cid=${configParams.cid}`;
+    }
+    if (configParams.vid) {
+      syncUrl += `&vid=${configParams.vid}`;
+    }
 
     if (!localData.id) {
-      let syncUrl = `https://audiencedata.im-apps.net/imuid/get?cid=${configParams.cid}`;
-      if (configParams.url) {
-        syncUrl = `${configParams.url}?cid=${configParams.cid}`;
-      }
-      if (configParams.vid) {
-        syncUrl += `&vid=${configParams.vid}`;
-      }
-
-      const resp = function (callback) {
-        const callbacks = {
-          success: response => {
-            const jsonResponse = JSON.parse(response);
-            syncSuccessProcess(jsonResponse);
-            callback(jsonResponse);
-          },
-          error: error => {
-            utils.logError('ID fetch encountered an error', error);
-            callback();
-          }
-        };
-        ajax(syncUrl, callbacks, undefined, {method: 'GET', withCredentials: true});
-      };
-      return {callback: resp};
+      return {callback: callImuidSync(syncUrl)}
     }
     if (localData.expired) {
-      callImuidSync();
+      callImuidSync(syncUrl)();
     }
     return {id: localData.id};
   }

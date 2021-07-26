@@ -12,21 +12,28 @@ describe('imuId module', function () {
     getLocalStorageStub.restore();
   });
 
-  const storageTestCases = [
-    { localStorage: 'uid2', expected: 'uid2' },
-    { localStorage: 'uid', expected: 'uid' }
+  const storageTestCasesForEmpty = [
+    undefined,
+    null,
+    ''
   ]
 
   const configParamTestCase = {
     params: {
-      cid: 3947
+      cid: 5126
     }
   }
 
-  storageTestCases.forEach(testCase => it('getId() should return the uid when it exists in local storages', function () {
-    getLocalStorageStub.withArgs('__im_uid').returns(testCase.localStorage);
+  it('getId() should return the uid when it exists in local storages', function () {
+    getLocalStorageStub.withArgs('__im_uid').returns('testUid');
     const id = imuIdSubmodule.getId(configParamTestCase);
-    expect(id).to.be.deep.equal({id: testCase.expected});
+    expect(id).to.be.deep.equal({id: 'testUid'});
+  });
+
+  storageTestCasesForEmpty.forEach(testCase => it('getId() should return the callback when it not exists in local storages', function () {
+    getLocalStorageStub.withArgs('__im_uid').returns(testCase);
+    const id = imuIdSubmodule.getId(configParamTestCase);
+    expect(id).have.all.keys('callback');
   }))
 
   it('decode() should return the uid when it exists in local storages', function () {
