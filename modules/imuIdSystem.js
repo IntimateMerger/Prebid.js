@@ -116,8 +116,8 @@ export const imuIdSubmodule = {
     if (configParams.url) {
       syncUrl = `${configParams.url}?cid=${configParams.cid}`;
     }
-    if (configParams.vid) {
-      syncUrl += `&vid=${configParams.vid}`;
+    if (localData.vid) {
+      syncUrl += `&vid=${localData.vid}`;
     }
 
     if (!localData.id) {
