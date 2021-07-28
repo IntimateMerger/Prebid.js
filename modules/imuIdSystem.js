@@ -16,6 +16,7 @@ const storageKey = '__im_uid';
 const cookieKey = '_im_vid';
 const storageMaxAge = 1800000; // 30 minites (30 * 60 * 1000)
 const cookiesMaxAge = 97200000000; // 37 months ((365 * 3 + 30) * 24 * 60 * 60 * 1000)
+const LOG_PREFIX = 'User ID - imuid submodule: ';
 
 function setImDataInLocalStorage(value) {
   storage.setDataInLocalStorage(storageKey, value);
@@ -68,7 +69,7 @@ function callImuidSync(syncUrl) {
           }
         }
         if (callback) {
-          callback(responseObj);
+          callback(responseObj.uid);
         }
       },
       error: error => {
