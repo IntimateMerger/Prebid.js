@@ -16,7 +16,6 @@ const storageKey = '__im_uid';
 const cookieKey = '_im_vid';
 const storageMaxAge = 1800000; // 30 minites (30 * 60 * 1000)
 const cookiesMaxAge = 97200000000; // 37 months ((365 * 3 + 30) * 24 * 60 * 60 * 1000)
-const LOG_PREFIX = 'User ID - imuid submodule: ';
 
 function setImDataInLocalStorage(value) {
   storage.setDataInLocalStorage(storageKey, value);
@@ -26,6 +25,15 @@ function setImDataInLocalStorage(value) {
 function removeImDataFromLocalStorage() {
   storage.removeDataFromLocalStorage(storageKey);
   storage.removeDataFromLocalStorage(`${storageKey}_mt`);
+}
+
+function setImDataInCookie(value) {
+  storage.setCookie(
+    cookieKey,
+    value,
+    new Date(utils.timestamp() + cookiesMaxAge).toUTCString(),
+    'none'
+  );
 }
 
 function getLocalData() {
@@ -48,7 +56,7 @@ function syncSuccessProcess(jsonResponse) {
   if (jsonResponse.uid) {
     setImDataInLocalStorage(jsonResponse.uid);
     if (jsonResponse.vid) {
-      storage.setCookie(cookieKey, jsonResponse.vid, new Date(utils.timestamp() + cookiesMaxAge).toUTCString());
+      setImDataInCookie(jsonResponse.vid);
     }
   } else {
     removeImDataFromLocalStorage(storageKey);
@@ -119,6 +127,7 @@ export const imuIdSubmodule = {
     }
     if (localData.vid) {
       syncUrl += `&vid=${localData.vid}`;
+      setImDataInCookie(localData.vid);
     }
 
     if (!localData.id) {
