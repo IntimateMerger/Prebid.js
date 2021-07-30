@@ -81,7 +81,7 @@ function callImuidSync(syncUrl) {
         }
       },
       error: error => {
-        utils.logError('ID fetch encountered an error', error);
+        utils.logError('User ID - imuid submodule was unable to get data from api: ' + error);
         if (callback) {
           callback();
         }
