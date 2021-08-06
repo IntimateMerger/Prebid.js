@@ -9,15 +9,18 @@ import {config} from '../src/config.js';
 import {getStorageManager} from '../src/storageManager.js';
 import {submodule} from '../src/hook.js';
 import {
-  // isFn,
-  // isStr,
-  timestamp, isPlainObject, mergeDeep, logError, logInfo} from '../src/utils.js';
+  timestamp,
+  isPlainObject,
+  mergeDeep,
+  logError,
+  logInfo
+} from '../src/utils.js';
 
-const MODULE_NAME = 'realTimeData';
-const SUBMODULE_NAME = 'im';
+const submoduleName = 'im';
 const storageMaxAge = 3600000; // 1 hour (30 * 60 * 1000)
-export const IMUID_LOCAL_NAME = '__imuid';
-export const RTD_LOCAL_NAME = '__im_sids';
+const storageMaxAgeForImuid = 1800000; // 30 minites (30 * 60 * 1000)
+export const imuidLocalName = '__imuid';
+export const imRtdLocalName = '__im_sids';
 export const storage = getStorageManager();
 
 /**
@@ -37,7 +40,7 @@ function mergeLazy(target, source) {
 
 function getUniq() {
   const date = new Date();
-  const str = RTD_LOCAL_NAME + (date.getUTCDate() % 5);
+  const str = imRtdLocalName + (date.getUTCDate() % 5);
   return btoa(str).replace(/=*$/g, '');
 }
 
@@ -107,8 +110,8 @@ export function getRealTimeData(bidConfig, onDone, rtdConfig) {
   logInfo(`rtdConfig:`);
   logInfo(rtdConfig);
   const token = getUniq();
-  const sids = storage.getDataFromLocalStorage(RTD_LOCAL_NAME);
-  const mt = storage.getDataFromLocalStorage(`${RTD_LOCAL_NAME}_mt`);
+  const sids = storage.getDataFromLocalStorage(imRtdLocalName);
+  const mt = storage.getDataFromLocalStorage(`${imRtdLocalName}_mt`);
   let expired = true;
   if (Date.parse(mt) && Date.now() - (new Date(mt)).getTime() < storageMaxAge) {
     expired = false;
@@ -147,16 +150,20 @@ export function getRealTimeDataAsync(bidConfig, rtdConfig, token, onDone) {
         }
         if (parsedResponse.uid) {
           logInfo(`uidFromRes: ${parsedResponse.uid}`);
-          if (!storage.getDataInLocalStorage(IMUID_LOCAL_NAME)) {
-            storage.setDataInLocalStorage(IMUID_LOCAL_NAME, parsedResponse.uid);
+          const imuid = storage.getDataInLocalStorage(imuidLocalName);
+          const imuidMt = storage.getDataInLocalStorage(`${imuidLocalName}_mt`);
+          const imuidExpired = Date.parse(imuidMt) && Date.now() - (new Date(imuidMt)).getTime() < storageMaxAgeForImuid;
+          if (!imuid || imuidExpired) {
+            storage.setDataInLocalStorage(imuidLocalName, parsedResponse.uid);
+            storage.setDataInLocalStorage(`${imuidLocalName}_mt`, new Date(timestamp()).toUTCString());
           }
         }
         if (parsedResponse.encrypted) {
           logInfo(`parsedSids: ${parsedResponse.encrypted}`);
           logInfo(`[decrypted]parsedSids: ${getSeg(parsedResponse.encrypted, token)}`);
           addRealTimeData(bidConfig, {ortb2: {imsids: getSeg(parsedResponse.encrypted, token)}}, rtdConfig);
-          storage.setDataInLocalStorage(RTD_LOCAL_NAME, parsedResponse.encrypted);
-          storage.setDataInLocalStorage(`${RTD_LOCAL_NAME}_mt`, new Date(timestamp()).toUTCString());
+          storage.setDataInLocalStorage(imRtdLocalName, parsedResponse.encrypted);
+          storage.setDataInLocalStorage(`${imRtdLocalName}_mt`, new Date(timestamp()).toUTCString());
         }
       }
       if (onDone) {
@@ -186,10 +193,10 @@ function init(provider, userConsent) {
 }
 
 /** @type {RtdSubmodule} */
-export const imSubmodule = {
-  name: SUBMODULE_NAME,
+export const imRtdSubmodule = {
+  name: submoduleName,
   getBidRequestData: getRealTimeData,
   init: init
 };
 
-submodule(MODULE_NAME, imSubmodule);
+submodule('realTimeData', imRtdSubmodule);
