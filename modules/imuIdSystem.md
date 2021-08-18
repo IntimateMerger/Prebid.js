@@ -31,5 +31,5 @@ pbjs.setConfig({
 | --- | --- | --- | --- | --- |
 | name | Required | String | The name of this module. | `"imuid"` |
 | params | Required | Object | Details of module params. | |
-| params.cid | Required | String | This is the Customer ID value obtained via Intimate Merger. | `5126` |
+| params.cid | Required | Number | This is the Customer ID value obtained via Intimate Merger. | `5126` |
 | params.url | Optional | String | Use this to change the default endpoint URL. | `"https://example.com/some/api"` |
