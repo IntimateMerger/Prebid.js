@@ -60,7 +60,7 @@
         });
 
         function sendAdserverRequest() {
-            document.getElementById('imuid').innerHTML = window.localStorage.getItem('__imuid');
+            document.getElementById('imuid').innerHTML = window.localStorage.getItem('__im_uid');
             document.getElementById('audigent_segments').innerHTML = window.localStorage.getItem('__im_sids');
 
             if (pbjs.adserverRequestSent) return;

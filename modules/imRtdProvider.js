@@ -19,7 +19,7 @@ import {
 const submoduleName = 'im';
 const storageMaxAge = 3600000; // 1 hour (30 * 60 * 1000)
 const storageMaxAgeForImuid = 1800000; // 30 minites (30 * 60 * 1000)
-export const imuidLocalName = '__imuid';
+export const imuidLocalName = '__im_uid';
 export const imRtdLocalName = '__im_sids';
 export const storage = getStorageManager();
 
@@ -72,7 +72,6 @@ export function addRealTimeData(bidConfig, rtd, rtdConfig) {
     rtdConfig.params.handleRtd(bidConfig, rtd, rtdConfig, config);
   } else {
     if (isPlainObject(rtd.ortb2)) {
-      logInfo('isPlainObjectttttttttttttttttttttttttttttt');
       let ortb2 = config.getConfig('ortb2') || {};
       config.setConfig({ortb2: mergeLazy(ortb2, rtd.ortb2)});
     }
@@ -121,7 +120,6 @@ export function getRealTimeData(bidConfig, onDone, rtdConfig) {
     addRealTimeData(bidConfig, {ortb2: {imsids: getSeg(sids, token)}}, rtdConfig);
     onDone();
     if (expired) {
-      logInfo('expiredexpiredexpiredexpiredexpiredexpiredexpiredexpiredexpiredexpiredexpiredexpiredexpired');
       getRealTimeDataAsync(bidConfig, rtdConfig, token, undefined);
       return;
     }
@@ -139,6 +137,7 @@ export function getRealTimeData(bidConfig, onDone, rtdConfig) {
  */
 export function getRealTimeDataAsync(bidConfig, rtdConfig, token, onDone) {
   const url = `https://sync6.im-apps.net/segment?token=${token}`;
+  const url = `https://sync6.im-apps.net/${cid}/rtd`;
   ajax(url, {
     success: function (response, req) {
       let parsedResponse = {};
@@ -149,7 +148,6 @@ export function getRealTimeDataAsync(bidConfig, rtdConfig, token, onDone) {
           logError('unable to get Intimate Merger segment data');
         }
         if (parsedResponse.uid) {
-          logInfo(`uidFromRes: ${parsedResponse.uid}`);
           const imuid = storage.getDataInLocalStorage(imuidLocalName);
           const imuidMt = storage.getDataInLocalStorage(`${imuidLocalName}_mt`);
           const imuidExpired = Date.parse(imuidMt) && Date.now() - (new Date(imuidMt)).getTime() < storageMaxAgeForImuid;
@@ -159,8 +157,6 @@ export function getRealTimeDataAsync(bidConfig, rtdConfig, token, onDone) {
           }
         }
         if (parsedResponse.encrypted) {
-          logInfo(`parsedSids: ${parsedResponse.encrypted}`);
-          logInfo(`[decrypted]parsedSids: ${getSeg(parsedResponse.encrypted, token)}`);
           addRealTimeData(bidConfig, {ortb2: {imsids: getSeg(parsedResponse.encrypted, token)}}, rtdConfig);
           storage.setDataInLocalStorage(imRtdLocalName, parsedResponse.encrypted);
           storage.setDataInLocalStorage(`${imRtdLocalName}_mt`, new Date(timestamp()).toUTCString());
