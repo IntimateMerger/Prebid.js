@@ -133,12 +133,6 @@ describe('imRtdProvider', function () {
     });
   })
 
-  describe('callSidsApi', function () {
-    it('should return', function () {
-      expect(callSidsApi()).to.equal(undefined)
-    })
-  })
-
   describe('getApiCallback', function () {
     it('should return success and error functions', function () {
       const res = getApiCallback(testReqBidsConfigObj, moduleConfig, false);

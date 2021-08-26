@@ -112,26 +112,14 @@ export function getRealTimeData(reqBidsConfigObj, onDone, moduleConfig) {
     setRealTimeData(reqBidsConfigObj, {im_segments: sids}, moduleConfig);
     onDone();
     if (expired) {
-      callSidsApi(reqBidsConfigObj, moduleConfig, apiUrl, undefined);
+      ajax(apiUrl, getApiCallback(reqBidsConfigObj, moduleConfig, undefined), undefined, {method: 'GET', withCredentials: true});
       return;
     }
   }
   if (!expired) {
     return;
   }
-  callSidsApi(reqBidsConfigObj, moduleConfig, apiUrl, expired ? undefined : onDone);
-}
-
-/**
- * Async rtd retrieval from Intimate Merger
- * @param {Object} reqBidsConfigObj
- * @param {Object} moduleConfig
- * @param {string} apiUrl
- * @param {function} onDone
- */
-export function callSidsApi(reqBidsConfigObj, moduleConfig, apiUrl, onDone) {
-  ajax(apiUrl, getApiCallback(reqBidsConfigObj, moduleConfig, onDone), undefined, {method: 'GET', withCredentials: true}
-  );
+  ajax(apiUrl, getApiCallback(reqBidsConfigObj, moduleConfig, expired ? undefined : onDone), undefined, {method: 'GET', withCredentials: true});
 }
 
 export function getApiCallback(reqBidsConfigObj, moduleConfig, onDone) {
