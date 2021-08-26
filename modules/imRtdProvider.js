@@ -37,7 +37,7 @@ function setImDataInCookie(value) {
   );
 }
 
-function getCustomBidderFunction(config, bidder) {
+export function getCustomBidderFunction(config, bidder) {
   const overwriteFn = deepAccess(config, `params.overwrites.${bidder}`)
 
   if (overwriteFn && isFn(overwriteFn)) {
@@ -62,9 +62,8 @@ export function setRealTimeData(bidConfig, data, moduleConfig) {
   config.setConfig({ortb2: ortb2});
 
   if (moduleConfig.params.setGptKeyValues || !moduleConfig.params.hasOwnProperty('setGptKeyValues')) {
-    window.googletag = window.googletag || {
-      cmd: []
-    };
+    window.googletag = window.googletag || {cmd: []};
+    window.googletag.cmd = window.googletag.cmd || [];
     window.googletag.cmd.push(() => {
       window.googletag.pubads().setTargeting('im_segments', data.im_segments);
     });
@@ -113,14 +112,14 @@ export function getRealTimeData(reqBidsConfigObj, onDone, moduleConfig) {
     setRealTimeData(reqBidsConfigObj, {im_segments: sids}, moduleConfig);
     onDone();
     if (expired) {
-      getRealTimeDataAsync(reqBidsConfigObj, moduleConfig, apiUrl, undefined);
+      callSidsApi(reqBidsConfigObj, moduleConfig, apiUrl, undefined);
       return;
     }
   }
   if (!expired) {
     return;
   }
-  getRealTimeDataAsync(reqBidsConfigObj, moduleConfig, apiUrl, expired ? undefined : onDone);
+  callSidsApi(reqBidsConfigObj, moduleConfig, apiUrl, expired ? undefined : onDone);
 }
 
 /**
@@ -130,8 +129,13 @@ export function getRealTimeData(reqBidsConfigObj, onDone, moduleConfig) {
  * @param {string} apiUrl
  * @param {function} onDone
  */
-export function getRealTimeDataAsync(bidConfig, moduleConfig, apiUrl, onDone) {
-  ajax(apiUrl, {
+export function callSidsApi(reqBidsConfigObj, moduleConfig, apiUrl, onDone) {
+  ajax(apiUrl, getApiCallback(reqBidsConfigObj, moduleConfig, onDone), undefined, {method: 'GET', withCredentials: true}
+  );
+}
+
+export function getApiCallback(reqBidsConfigObj, moduleConfig, onDone) {
+  return {
     success: function (response, req) {
       let parsedResponse = {};
       if (req.status === 200) {
@@ -156,7 +160,7 @@ export function getRealTimeDataAsync(bidConfig, moduleConfig, apiUrl, onDone) {
 
         if (parsedResponse.segments) {
           logInfo(`parsedResponse.segments: ${parsedResponse.segments}`);
-          setRealTimeData(bidConfig, {im_segments: parsedResponse.segments}, moduleConfig);
+          setRealTimeData(reqBidsConfigObj, {im_segments: parsedResponse.segments}, moduleConfig);
           storage.setDataInLocalStorage(imRtdLocalName, parsedResponse.segments);
           storage.setDataInLocalStorage(`${imRtdLocalName}_mt`, new Date(timestamp()).toUTCString());
         }
@@ -171,10 +175,7 @@ export function getRealTimeDataAsync(bidConfig, moduleConfig, apiUrl, onDone) {
       }
       logError('unable to get Intimate Merger segment data');
     }
-  },
-  undefined,
-  {withCredentials: true}
-  );
+  }
 }
 
 /**
