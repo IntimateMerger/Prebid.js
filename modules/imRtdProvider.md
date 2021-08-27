@@ -6,7 +6,7 @@ provided by Intimate Merger.
 
 First, make sure to add the Intimate Merger submodule to your Prebid.js package with:
 
-`gulp build --modules=imRtdProvider`
+`gulp build --modules=rtdModule,imRtdProvider`
 
 The following configuration parameters are available:
 

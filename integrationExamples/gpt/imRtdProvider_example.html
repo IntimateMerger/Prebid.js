@@ -13,7 +13,7 @@
                 },
                 bids: [
                     {
-                        bidder: 'rubicon',
+                        bidder: 'appnexus',
                         params: {
                             placementId: 13144370
                         }
@@ -58,7 +58,7 @@
 
         function sendAdserverRequest() {
             document.getElementById('imuid').innerHTML = window.localStorage.getItem('__im_uid');
-            document.getElementById('audigent_segments').innerHTML = window.localStorage.getItem('__im_sids');
+            document.getElementById('im_segments').innerHTML = window.localStorage.getItem('__im_sids');
 
             if (pbjs.adserverRequestSent) return;
             pbjs.adserverRequestSent = true;
@@ -110,6 +110,6 @@ Intimate Merger Universal Identifier:
 <div id='imuid'></div>
 
 Intimate Merger Real-Time Data:
-<div id='audigent_segments'></div>
+<div id='im_segments'></div>
 </body>
 </html>

@@ -4,7 +4,6 @@ import {
   getCustomBidderFunction,
   setRealTimeData,
   getRealTimeData,
-  callSidsApi,
   getApiCallback,
   imUidLocalName,
   imVidCookieName,
@@ -105,7 +104,7 @@ describe('imRtdProvider', function () {
     });
 
     it('should initalise and return with config', function () {
-      expect(getRealTimeData(null, onDone, moduleConfig)).to.equal(undefined)
+      expect(getRealTimeData(testReqBidsConfigObj, onDone, moduleConfig)).to.equal(undefined)
     });
 
     it('should return the uid when sids(rtd) not expired', function () {
@@ -135,20 +134,20 @@ describe('imRtdProvider', function () {
 
   describe('getApiCallback', function () {
     it('should return success and error functions', function () {
-      const res = getApiCallback(testReqBidsConfigObj, moduleConfig, false);
+      const res = getApiCallback(testReqBidsConfigObj, false, moduleConfig);
       expect(res.success).to.exist.and.to.be.a('function');
       expect(res.error).to.exist.and.to.be.a('function');
     });
 
     it('should return "undefined" success', function () {
-      const res = getApiCallback(testReqBidsConfigObj, moduleConfig, false);
+      const res = getApiCallback(testReqBidsConfigObj, false, moduleConfig);
       const successResponse = '{"uid": "testid", "segments": "testsegment", "vid": "testvid"}';
       expect(res.success(successResponse, {status: 200})).to.equal(undefined);
       expect(res.error()).to.equal(undefined);
     });
 
     it('should return "undefined" catch error response', function () {
-      const res = getApiCallback(testReqBidsConfigObj, moduleConfig, false);
+      const res = getApiCallback(testReqBidsConfigObj, false, moduleConfig);
       expect(res.success('error response', {status: 400})).to.equal(undefined);
     });
   })

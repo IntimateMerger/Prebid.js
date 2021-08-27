@@ -48,17 +48,17 @@ export function getCustomBidderFunction(config, bidder) {
 }
 
 /**
- * Add real-time data & merge segments.
+ * Add real-time data.
  * @param {Object} bidConfig
  * @param {Object} data
  * @param {Object} moduleConfig
  */
 export function setRealTimeData(bidConfig, data, moduleConfig) {
   const adUnits = bidConfig.adUnits || getGlobal().adUnits;
-  const utils = { deepSetValue, deepAccess, isFn, mergeDeep };
+  const utils = {deepSetValue, deepAccess, logInfo, logError, mergeDeep};
 
   const ortb2 = config.getConfig('ortb2') || {};
-  deepSetValue(ortb2, 'user.data.ext.im_segments', data.im_segments);
+  deepSetValue(ortb2, 'user.ext.data.im_segments', data.im_segments);
   config.setConfig({ortb2: ortb2});
 
   if (moduleConfig.params.setGptKeyValues || !moduleConfig.params.hasOwnProperty('setGptKeyValues')) {
@@ -73,9 +73,8 @@ export function setRealTimeData(bidConfig, data, moduleConfig) {
     adUnit.bids.forEach(bid => {
       const overwriteFunction = getCustomBidderFunction(moduleConfig, bid.bidder);
       if (overwriteFunction) {
-        overwriteFunction(bid, data, utils, moduleConfig);
+        overwriteFunction(bid, data, utils, config);
       }
-      logInfo(utils.deepAccess(bid, 'params'));
     })
   });
 }
@@ -94,35 +93,45 @@ export function getRealTimeData(reqBidsConfigObj, onDone, moduleConfig) {
     return;
   }
   const sids = storage.getDataFromLocalStorage(imRtdLocalName);
+  const parsedSids = sids ? sids.split(',') : [];
   const mt = storage.getDataFromLocalStorage(`${imRtdLocalName}_mt`);
   const localVid = storage.getCookie(imVidCookieName);
   let apiUrl = `https://sync6.im-apps.net/${cid}/rtd`;
+  let expired = true;
+  let alreadyDone = false;
+
   if (localVid) {
-    apiUrl += `&vid=${localVid}`;
+    apiUrl += `?vid=${localVid}`;
     setImDataInCookie(localVid);
   }
 
-  let expired = true;
   if (Date.parse(mt) && Date.now() - (new Date(mt)).getTime() < segmentsMaxAge) {
     expired = false;
   }
 
-  if (sids) {
-    logInfo(`sids: ${sids}`);
-    setRealTimeData(reqBidsConfigObj, {im_segments: sids}, moduleConfig);
+  if (sids !== null) {
+    setRealTimeData(reqBidsConfigObj, {im_segments: parsedSids}, moduleConfig);
     onDone();
-    if (expired) {
-      ajax(apiUrl, getApiCallback(reqBidsConfigObj, moduleConfig, undefined), undefined, {method: 'GET', withCredentials: true});
-      return;
-    }
+    alreadyDone = true;
   }
-  if (!expired) {
-    return;
+
+  if (expired) {
+    ajax(
+      apiUrl,
+      getApiCallback(reqBidsConfigObj, alreadyDone ? undefined : onDone, moduleConfig),
+      undefined,
+      {method: 'GET', withCredentials: true}
+    );
   }
-  ajax(apiUrl, getApiCallback(reqBidsConfigObj, moduleConfig, expired ? undefined : onDone), undefined, {method: 'GET', withCredentials: true});
 }
 
-export function getApiCallback(reqBidsConfigObj, moduleConfig, onDone) {
+/**
+ * Api callback from Intimate Merger
+ * @param {Object} reqBidsConfigObj
+ * @param {function} onDone
+ * @param {Object} moduleConfig
+ */
+export function getApiCallback(reqBidsConfigObj, onDone, moduleConfig) {
   return {
     success: function (response, req) {
       let parsedResponse = {};
@@ -132,6 +141,7 @@ export function getApiCallback(reqBidsConfigObj, moduleConfig, onDone) {
         } catch (e) {
           logError('unable to get Intimate Merger segment data');
         }
+        
         if (parsedResponse.uid) {
           const imuid = storage.getDataFromLocalStorage(imUidLocalName);
           const imuidMt = storage.getDataFromLocalStorage(`${imUidLocalName}_mt`);
@@ -147,7 +157,6 @@ export function getApiCallback(reqBidsConfigObj, moduleConfig, onDone) {
         }
 
         if (parsedResponse.segments) {
-          logInfo(`parsedResponse.segments: ${parsedResponse.segments}`);
           setRealTimeData(reqBidsConfigObj, {im_segments: parsedResponse.segments}, moduleConfig);
           storage.setDataInLocalStorage(imRtdLocalName, parsedResponse.segments);
           storage.setDataInLocalStorage(`${imRtdLocalName}_mt`, new Date(timestamp()).toUTCString());
