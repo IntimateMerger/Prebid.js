@@ -25,23 +25,20 @@ describe('imRtdProvider', function () {
   const onDone = function() { return true };
   const moduleConfig = {
     params: {
-      cid: 5126, // Set your Intimate Merger Customer ID here for production
+      cid: 5126,
       setGptKeyValues: true
     }
   }
 
   beforeEach(function (done) {
-    // setLocalStorageStub = sinon.stub(storage, 'setDataInLocalStorage');
     getLocalStorageStub = sinon.stub(storage, 'getDataFromLocalStorage');
     getCookieStub = sinon.stub(storage, 'getCookie');
-    // ajaxBuilderStub = sinon.stub(ajaxLib, 'ajaxBuilder').callsFake(mockResponse('{}'));
     done();
   });
 
   afterEach(function () {
     getLocalStorageStub.restore();
     getCookieStub.restore();
-    // ajaxBuilderStub.restore();
   });
 
   describe('imRtdSubmodule', function () {
