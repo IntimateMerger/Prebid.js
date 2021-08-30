@@ -6,7 +6,7 @@
  */
 import {ajax} from '../src/ajax.js';
 import {config} from '../src/config.js';
-import { getGlobal } from '../src/prebidGlobal.js'
+import {getGlobal} from '../src/prebidGlobal.js'
 import {getStorageManager} from '../src/storageManager.js';
 import {
   deepSetValue,
@@ -50,23 +50,25 @@ export function getCustomBidderFunction(config, bidder) {
 /**
  * Add real-time data.
  * @param {Object} bidConfig
- * @param {Object} data
  * @param {Object} moduleConfig
+ * @param {Object} data
  */
-export function setRealTimeData(bidConfig, data, moduleConfig) {
+export function setRealTimeData(bidConfig, moduleConfig, data) {
   const adUnits = bidConfig.adUnits || getGlobal().adUnits;
   const utils = {deepSetValue, deepAccess, logInfo, logError, mergeDeep};
 
-  const ortb2 = config.getConfig('ortb2') || {};
-  deepSetValue(ortb2, 'user.ext.data.im_segments', data.im_segments);
-  config.setConfig({ortb2: ortb2});
+  if (data.im_segments) {
+    const ortb2 = config.getConfig('ortb2') || {};
+    deepSetValue(ortb2, 'user.ext.data.im_segments', data.im_segments);
+    config.setConfig({ortb2: ortb2});
 
-  if (moduleConfig.params.setGptKeyValues || !moduleConfig.params.hasOwnProperty('setGptKeyValues')) {
-    window.googletag = window.googletag || {cmd: []};
-    window.googletag.cmd = window.googletag.cmd || [];
-    window.googletag.cmd.push(() => {
-      window.googletag.pubads().setTargeting('im_segments', data.im_segments);
-    });
+    if (moduleConfig.params.setGptKeyValues || !moduleConfig.params.hasOwnProperty('setGptKeyValues')) {
+      window.googletag = window.googletag || {cmd: []};
+      window.googletag.cmd = window.googletag.cmd || [];
+      window.googletag.cmd.push(() => {
+        window.googletag.pubads().setTargeting('im_segments', data.im_segments);
+      });
+    }
   }
 
   adUnits.forEach(adUnit => {
@@ -110,7 +112,7 @@ export function getRealTimeData(reqBidsConfigObj, onDone, moduleConfig) {
   }
 
   if (sids !== null) {
-    setRealTimeData(reqBidsConfigObj, {im_segments: parsedSids}, moduleConfig);
+    setRealTimeData(reqBidsConfigObj, moduleConfig, {im_segments: parsedSids});
     onDone();
     alreadyDone = true;
   }
@@ -141,7 +143,7 @@ export function getApiCallback(reqBidsConfigObj, onDone, moduleConfig) {
         } catch (e) {
           logError('unable to get Intimate Merger segment data');
         }
-        
+
         if (parsedResponse.uid) {
           const imuid = storage.getDataFromLocalStorage(imUidLocalName);
           const imuidMt = storage.getDataFromLocalStorage(`${imUidLocalName}_mt`);
@@ -157,7 +159,7 @@ export function getApiCallback(reqBidsConfigObj, onDone, moduleConfig) {
         }
 
         if (parsedResponse.segments) {
-          setRealTimeData(reqBidsConfigObj, {im_segments: parsedResponse.segments}, moduleConfig);
+          setRealTimeData(reqBidsConfigObj, moduleConfig, {im_segments: parsedResponse.segments});
           storage.setDataInLocalStorage(imRtdLocalName, parsedResponse.segments);
           storage.setDataInLocalStorage(`${imRtdLocalName}_mt`, new Date(timestamp()).toUTCString());
         }

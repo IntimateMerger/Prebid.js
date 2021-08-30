@@ -81,7 +81,7 @@ describe('imRtdProvider', function () {
 
   describe('setRealTimeData', function () {
     it('should return true when empty params', function () {
-      expect(setRealTimeData({adUnits: []}, {im_segments: []}, {params: {}})).to.equal(undefined)
+      expect(setRealTimeData({adUnits: []}, {params: {}}, {im_segments: []})).to.equal(undefined)
     });
     it('should return true when overwrites and bid params', function () {
       const config = {
@@ -91,7 +91,7 @@ describe('imRtdProvider', function () {
           }
         }
       };
-      expect(setRealTimeData(testReqBidsConfigObj, {im_segments: []}, config)).to.equal(undefined)
+      expect(setRealTimeData(testReqBidsConfigObj, config, {im_segments: []})).to.equal(undefined)
     });
   })
 
