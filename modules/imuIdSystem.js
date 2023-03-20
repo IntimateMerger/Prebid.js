@@ -6,12 +6,11 @@
  */
 
 import { timestamp, logError } from '../src/utils.js';
-import { ajax } from '../src/ajax.js'
+import { ajax } from '../src/ajax.js';
 import { submodule } from '../src/hook.js';
 import { getStorageManager } from '../src/storageManager.js';
 
 export const storage = getStorageManager();
-
 export const storageKey = '__im_uid';
 export const storagePpKey = '__im_ppid';
 export const cookieKey = '_im_vid';
@@ -48,11 +47,14 @@ export function getLocalData() {
   };
 }
 
-export function getApiUrl(cid, url) {
+export function getApiUrl(cid, url, vid) {
   if (url) {
-    return `${url}?cid=${cid}`;
+    const separator = url.includes('?') ? '&' : '?';
+    const vidParam = vid ? `&vid=${vid}` : '';
+    return `${url}${separator}cid=${cid}${vidParam}`;
   }
-  return `https://${apiDomain}/${cid}/pid`;
+  const vidParam = vid ? `?vid=${vid}` : '';
+  return `https://${apiDomain}/${cid}/pid${vidParam}`;
 }
 
 export function apiSuccessProcess(jsonResponse) {
@@ -138,19 +140,21 @@ export const imuIdSubmodule = {
       logError('User ID - imuid submodule requires a valid cid to be defined');
       return undefined;
     }
-    let apiUrl = getApiUrl(configParams.cid, configParams.url);
+
     const localData = getLocalData();
+    const apiUrl = getApiUrl(configParams.cid, configParams.url, localData.vid);
     if (localData.vid) {
-      apiUrl += `&vid=${localData.vid}`;
       setImDataInCookie(localData.vid);
     }
 
     if (!localData.id) {
       return {callback: callImuidApi(apiUrl)};
     }
+
     if (localData.expired) {
       callImuidApi(apiUrl)();
     }
+
     return {
       id: {
         imuid: localData.id,
