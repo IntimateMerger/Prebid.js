@@ -23,7 +23,6 @@ import {submodule} from '../src/hook.js';
 export const imUidLocalName = '__im_uid';
 export const imVidCookieName = '_im_vid';
 export const imRtdLocalName = '__im_sids';
-export const ortbName = 'intimatemerger.com';
 export const storage = getStorageManager();
 const submoduleName = 'im';
 const segmentsMaxAge = 3600000; // 1 hour (30 * 60 * 1000)
@@ -31,22 +30,22 @@ const uidMaxAge = 1800000; // 30 minites (30 * 60 * 1000)
 const vidMaxAge = 97200000000; // 37 months ((365 * 3 + 30) * 24 * 60 * 60 * 1000)
 
 /**
- * @param {Object} im_segments
+ * @param {Object} imSegments
  * @param {Object} moduleConfig
  */
-function formatImSegments(im_segments, moduleConfig) {
-  if (!im_segments) return;
+function formatImSegments(imSegments, moduleConfig) {
+  if (!imSegments) return;
   const maxSegments = !Number.isNaN(moduleConfig.params.maxSegments) ? moduleConfig.params.maxSegments : 200;
-  return im_segments.split(',') ?? [].slice(0, maxSegments);
+  return imSegments.slice(0, maxSegments);
 }
 
 /**
- * @param {Object} iab_segments
+ * @param {Object} iabSegments
  */
-function formatIabSegments(iab_segments) {
-  if (!iab_segments) return;
-  return Object.keys(iab_segments).map((taxkey) => {
-    const segmentArray = iab_segments[taxkey].split(',');
+function formatIabSegments(iabSegments) {
+  if (!iabSegments) return;
+  return Object.keys(iabSegments).map((taxkey) => {
+    const segmentArray = iabSegments[taxkey].split(',');
     return {
       name: 'intimatemerger.com',
       ext: { segtax: parseInt(taxkey) },
@@ -75,24 +74,22 @@ function mergeRealTimeData(ortb2, rtd) {
 export function getBidderFunction(bidderName) {
   const biddersFunction = {
     pubmatic: function (bid, data, moduleConfig) {
-      if (data.segments.im && data.segments.im.length) {
+      if (data.segments?.im && data.segments.im.length) {
         const segments = formatImSegments(data.segments.im, moduleConfig);
         const dctr = deepAccess(bid, 'params.dctr');
-        deepSetValue(
+        mergeDeep(
           bid,
-          'params.dctr',
-          `${dctr ? dctr + '|' : ''}im_segments=${segments.join(',')}`
+          {params: {dctr: `${dctr ? dctr + '|' : ''}im_segments=${segments.join(',')}`}}
         );
       }
       return bid
     },
     fluct: function (bid, data, moduleConfig) {
-      if (data.segments.im && data.segments.im.length) {
+      if (data.segments?.im && data.segments.im.length) {
         const segments = formatImSegments(data.segments.im, moduleConfig);
-        deepSetValue(
+        mergeDeep(
           bid,
-          'params.kv.imsids',
-          segments
+          {params: {kv: {imsids: segments}}}
         );
       }
       return bid
@@ -174,7 +171,10 @@ export function getRealTimeData(reqBidsConfigObj, onDone, moduleConfig) {
     onDone();
     return;
   }
-  const sids = JSON.parse(storage.getDataFromLocalStorage(imRtdLocalName));
+  let sids = {};
+  try {
+    sids = JSON.parse(storage.getDataFromLocalStorage(imRtdLocalName));
+  } catch (err) {};
   const mt = storage.getDataFromLocalStorage(`${imRtdLocalName}_mt`);
   const localVid = storage.getCookie(imVidCookieName);
   let apiUrl = `https://sync6.im-apps.net/${cid}/rtd`;
@@ -221,7 +221,7 @@ export function getApiCallback(reqBidsConfigObj, onDone, moduleConfig) {
   return {
     success: function (response2, req) {
       let parsedResponse = {};
-      const response = '{"uid":"i.aaX9D02lQNaczyEKWfn-Fw","segments":{"im":"ka6lXPVb,gAa75mJg","iab":{"1":"123,345","2":"567,890"}},"ppid":"e9f1c99e371193362120fd4a744d2a83"}';
+      const response = '{"uid":"i.aaX9D02lQNaczyEKWfn-Fw","segments":["ka6lXPVb","gAa75mJg"],"iab_segments":{"1":"123,345","2":"567,890"},"ppid":"e9f1c99e371193362120fd4a744d2a83"}';
       if (req.status === 200) {
         try {
           parsedResponse = JSON.parse(response);
@@ -249,8 +249,12 @@ export function getApiCallback(reqBidsConfigObj, onDone, moduleConfig) {
         }
 
         if (parsedResponse.segments) {
-          setRealTimeData(reqBidsConfigObj, moduleConfig, {segments: parsedResponse.segments});
-          storage.setDataInLocalStorage(imRtdLocalName, JSON.stringify(parsedResponse.segments));
+          const segments = {
+            'im': parsedResponse.segments,
+            'iab': parsedResponse.iab_segments
+          }
+          setRealTimeData(reqBidsConfigObj, moduleConfig, {segments: segments});
+          storage.setDataInLocalStorage(imRtdLocalName, JSON.stringify(segments));
           storage.setDataInLocalStorage(`${imRtdLocalName}_mt`, new Date(timestamp()).toUTCString());
         }
       }
