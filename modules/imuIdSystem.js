@@ -5,9 +5,10 @@
  * @requires module:modules/userId
  */
 
-import { timestamp, logError } from '../src/utils.js';
+import { timestamp, logError, parseUrl } from '../src/utils.js';
 import { ajax } from '../src/ajax.js';
 import { submodule } from '../src/hook.js';
+import { getRefererInfo } from '../src/refererDetection.js';
 import { getStorageManager } from '../src/storageManager.js';
 
 export const storage = getStorageManager();
@@ -25,6 +26,11 @@ function setImDataInCookie(value) {
     new Date(timestamp() + cookiesMaxAge).toUTCString(),
     'none'
   );
+}
+
+function extractUrl(url, hostOnly) {
+  const parsedUrl = parseUrl(url, { noDecodeWholeURL: true });
+  return hostOnly ? `${parsedUrl.hostname}` : `${parsedUrl.href}`;
 }
 
 export function removeImDataFromLocalStorage() {
@@ -47,14 +53,28 @@ export function getLocalData() {
   };
 }
 
-export function getApiUrl(cid, url, vid) {
-  if (url) {
-    const separator = url.includes('?') ? '&' : '?';
-    const vidParam = vid ? `&vid=${vid}` : '';
-    return `${url}${separator}cid=${cid}${vidParam}`;
+export function buildApiUrl(cid, apiUrl, vid) {
+  let baseUrl = `https://${apiDomain}/${cid}/pid?orig=prebid`;
+  if (apiUrl) {
+    const sep = apiUrl.includes('?') ? '&' : '?';
+    baseUrl = `${apiUrl}${sep}orig=prebid&cid=${cid}`;
   }
-  const vidParam = vid ? `?vid=${vid}` : '';
-  return `https://${apiDomain}/${cid}/pid${vidParam}`;
+
+  baseUrl += `${vid ? '&vid=' + encodeURIComponent(vid) : ''}`;
+
+  if (window.imuIdSystemDataCollectionEnabled) {
+    const cw = storage.cookiesAreEnabled();
+    const lsw = storage.localStorageIsEnabled();
+    const topUrl = extractUrl(getRefererInfo().page);
+    const currentHost = extractUrl(document.location.href, true);
+    return baseUrl +
+    `${topUrl ? '&topUrl=' + encodeURIComponent(topUrl) : ''}` +
+    `${currentHost ? '&currentHost=' + encodeURIComponent(currentHost) : ''}` +
+    `${cw ? '&cw=1' : ''}` +
+    `${lsw ? '&lsw=1' : ''}`;
+  }
+
+  return baseUrl;
 }
 
 export function apiSuccessProcess(jsonResponse) {
@@ -142,7 +162,7 @@ export const imuIdSubmodule = {
     }
 
     const localData = getLocalData();
-    const apiUrl = getApiUrl(configParams.cid, configParams.url, localData.vid);
+    const apiUrl = buildApiUrl(configParams.cid, configParams.url, localData.vid);
     if (localData.vid) {
       setImDataInCookie(localData.vid);
     }
