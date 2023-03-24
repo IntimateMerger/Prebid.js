@@ -61,7 +61,7 @@ describe('imRtdProvider', function () {
 
       it(`should return bid with correct key data: ${bidderName}`, function () {
         const bid = {bidder: bidderName};
-        expect(getBidderFunction(bidderName)(bid, {'im_segments': ['12345', '67890']}, {params: {}})).to.equal(bid);
+        expect(getBidderFunction(bidderName)(bid, {'segments': {'im': ['12345', '67890']}}, {params: {}})).to.equal(bid);
       });
       it(`should return bid without data: ${bidderName}`, function () {
         const bid = {bidder: bidderName};
@@ -87,7 +87,7 @@ describe('imRtdProvider', function () {
         };
         expect(getBidderFunction('fluct')(
           bid,
-          {im_segments: ['12345', '67890', '09876']},
+          {segments: {im: ['12345', '67890', '09876']}},
           {params: {maxSegments: 2}}
         ))
           .to.eql(

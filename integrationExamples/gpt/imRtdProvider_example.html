@@ -13,10 +13,12 @@
                 },
                 bids: [
                     {
-                        bidder: 'appnexus',
+                        bidder: 'rubicon',
                         params: {
-                            placementId: 13144370
-                        }
+                                accountId: 14062,
+                                siteId: 70608,
+                                zoneId: 498816
+                            }
                     }
                 ]
             }
@@ -50,7 +52,55 @@
 
                         }
                     ]
-                }
+                },
+                ortb2: {
+                    user: {
+                        data: [
+                        {
+                            name: "www.dataprovider1.com",
+                            ext: {
+                            segtax: 6
+                            },
+                            segment: [
+                            {
+                                id: "687"
+                            },
+                            {
+                                id: "123"
+                            }
+                            ]
+                        },
+                        {
+                            name: "www.dataprovider1.com",
+                            ext: {
+                            segtax: 7
+                            },
+                            segment: [
+                            {
+                                id: "456"
+                            },
+                            {
+                                id: "789"
+                            }
+                            ]
+                        },
+                        {
+                            name: "www.dataprovider1.com",
+                            ext: {
+                            segtax: 4
+                            },
+                            segment: [
+                            {
+                                id: "111"
+                            },
+                            {
+                                id: "222"
+                            }
+                            ]
+                        }
+                        ]
+                    }
+                  }
             });
             pbjs.addAdUnits(adUnits);
             pbjs.requestBids({bidsBackHandler: sendAdserverRequest});
