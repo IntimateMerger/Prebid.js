@@ -54,27 +54,24 @@ export function getLocalData() {
 }
 
 export function buildApiUrl(cid, apiUrl, vid) {
-  let baseUrl = `https://${apiDomain}/${cid}/pid?orig=prebid`;
+  let baseUrl = `https://${apiDomain}/${cid}/pid?prb`;
   if (apiUrl) {
     const sep = apiUrl.includes('?') ? '&' : '?';
-    baseUrl = `${apiUrl}${sep}orig=prebid&cid=${cid}`;
-  }
+    baseUrl = `${apiUrl}${sep}prb&cid=${cid}`;
+    }
 
   baseUrl += `${vid ? '&vid=' + encodeURIComponent(vid) : ''}`;
 
-  if (window.imuIdSystemDataCollectionEnabled) {
-    const cw = storage.cookiesAreEnabled();
-    const lsw = storage.localStorageIsEnabled();
-    const topUrl = extractUrl(getRefererInfo().page);
-    const currentHost = extractUrl(document.location.href, true);
-    return baseUrl +
-    `${topUrl ? '&topUrl=' + encodeURIComponent(topUrl) : ''}` +
-    `${currentHost ? '&currentHost=' + encodeURIComponent(currentHost) : ''}` +
-    `${cw ? '&cw=1' : ''}` +
-    `${lsw ? '&lsw=1' : ''}`;
-  }
-
-  return baseUrl;
+  const cw = storage.cookiesAreEnabled();
+  const lsw = storage.localStorageIsEnabled();
+  const topUrl = extractUrl(getRefererInfo().page);
+  const currentHost = extractUrl(document.location.href, true);
+  return baseUrl +
+  `${window.imLinkage.retrieve ? '&retr=' + window.imLinkage.retrieve : 0}` +
+  `${topUrl ? '&turl=' + encodeURIComponent(topUrl) : ''}` +
+  `${currentHost ? '&chost=' + encodeURIComponent(currentHost) : ''}` +
+  `${cw ? '&cw=1' : ''}` +
+  `${lsw ? '&lsw=1' : ''}`;
 }
 
 export function apiSuccessProcess(jsonResponse) {
