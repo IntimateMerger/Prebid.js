@@ -5,13 +5,13 @@
  * @requires module:modules/userId
  */
 
-import { timestamp, logError } from '../src/utils.js';
-import { ajax } from '../src/ajax.js'
+import { timestamp, logError, parseUrl } from '../src/utils.js';
+import { ajax } from '../src/ajax.js';
 import { submodule } from '../src/hook.js';
+import { getRefererInfo } from '../src/refererDetection.js';
 import { getStorageManager } from '../src/storageManager.js';
 
 export const storage = getStorageManager();
-
 export const storageKey = '__im_uid';
 export const storagePpKey = '__im_ppid';
 export const cookieKey = '_im_vid';
@@ -26,6 +26,11 @@ function setImDataInCookie(value) {
     new Date(timestamp() + cookiesMaxAge).toUTCString(),
     'none'
   );
+}
+
+function extractUrl(url, hostOnly) {
+  const parsedUrl = parseUrl(url, { noDecodeWholeURL: true });
+  return hostOnly ? `${parsedUrl.hostname}` : `${parsedUrl.href}`;
 }
 
 export function removeImDataFromLocalStorage() {
@@ -48,11 +53,25 @@ export function getLocalData() {
   };
 }
 
-export function getApiUrl(cid, url) {
-  if (url) {
-    return `${url}?cid=${cid}`;
+export function buildApiUrl(cid, apiUrl, vid) {
+  let baseUrl = `https://${apiDomain}/${cid}/pid?prb`;
+  if (apiUrl) {
+    const sep = apiUrl.includes('?') ? '&' : '?';
+    baseUrl = `${apiUrl}${sep}prb&cid=${cid}`;
   }
-  return `https://${apiDomain}/${cid}/pid`;
+
+  baseUrl += `${vid ? '&vid=' + encodeURIComponent(vid) : ''}`;
+
+  const cw = storage.cookiesAreEnabled();
+  const lsw = storage.localStorageIsEnabled();
+  const topUrl = extractUrl(getRefererInfo().page);
+  const currentHost = extractUrl(document.location.href, true);
+  return baseUrl +
+  `${window.imLinkage?.retrieve ? '&retr=' + window.imLinkage.retrieve : 0}` +
+  `${topUrl ? '&turl=' + encodeURIComponent(topUrl) : ''}` +
+  `${currentHost ? '&chost=' + encodeURIComponent(currentHost) : ''}` +
+  `${cw ? '&cw=1' : ''}` +
+  `${lsw ? '&lsw=1' : ''}`;
 }
 
 export function apiSuccessProcess(jsonResponse) {
@@ -138,19 +157,21 @@ export const imuIdSubmodule = {
       logError('User ID - imuid submodule requires a valid cid to be defined');
       return undefined;
     }
-    let apiUrl = getApiUrl(configParams.cid, configParams.url);
+
     const localData = getLocalData();
+    const apiUrl = buildApiUrl(configParams.cid, configParams.url, localData.vid);
     if (localData.vid) {
-      apiUrl += `&vid=${localData.vid}`;
       setImDataInCookie(localData.vid);
     }
 
     if (!localData.id) {
       return {callback: callImuidApi(apiUrl)};
     }
+
     if (localData.expired) {
       callImuidApi(apiUrl)();
     }
+
     return {
       id: {
         imuid: localData.id,
