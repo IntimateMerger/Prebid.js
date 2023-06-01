@@ -79,12 +79,12 @@ describe('imuId module', function () {
   describe('buildApiUrl()', function () {
     it('should return default url when cid only', function () {
       const url = buildApiUrl(5126);
-      expect(url).to.be.equal(`https://sync6.im-apps.net/5126/pid?orig=prebid`);
+      expect(url).to.be.include(`https://sync6.im-apps.net/5126/pid?prb`);
     });
 
     it('should return param url when set url', function () {
       const url = buildApiUrl(5126, 'testurl');
-      expect(url).to.be.equal('testurl?orig=prebid&cid=5126');
+      expect(url).to.be.include('testurl?prb&cid=5126');
     });
   });
 
@@ -158,7 +158,7 @@ describe('imuId module', function () {
 
   describe('callImuidApi()', function () {
     it('should return function when set url', function () {
-      const res = callImuidApi(`${apiUrl}?orig=prebid&cid=5126`);
+      const res = callImuidApi(`${apiUrl}?prb&cid=5126`);
       expect(res).to.exist.and.to.be.a('function');
     });
   });

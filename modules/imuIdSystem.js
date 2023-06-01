@@ -58,7 +58,7 @@ export function buildApiUrl(cid, apiUrl, vid) {
   if (apiUrl) {
     const sep = apiUrl.includes('?') ? '&' : '?';
     baseUrl = `${apiUrl}${sep}prb&cid=${cid}`;
-    }
+  }
 
   baseUrl += `${vid ? '&vid=' + encodeURIComponent(vid) : ''}`;
 
@@ -67,7 +67,7 @@ export function buildApiUrl(cid, apiUrl, vid) {
   const topUrl = extractUrl(getRefererInfo().page);
   const currentHost = extractUrl(document.location.href, true);
   return baseUrl +
-  `${window.imLinkage.retrieve ? '&retr=' + window.imLinkage.retrieve : 0}` +
+  `${window.imLinkage?.retrieve ? '&retr=' + window.imLinkage.retrieve : 0}` +
   `${topUrl ? '&turl=' + encodeURIComponent(topUrl) : ''}` +
   `${currentHost ? '&chost=' + encodeURIComponent(currentHost) : ''}` +
   `${cw ? '&cw=1' : ''}` +
