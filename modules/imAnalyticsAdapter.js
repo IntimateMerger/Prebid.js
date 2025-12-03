@@ -2,8 +2,6 @@ import { logMessage } from '../src/utils.js';
 import adapter from '../libraries/analyticsAdapter/AnalyticsAdapter.js';
 import adapterManager from '../src/adapterManager.js';
 import { EVENTS } from '../src/constants.js';
-import { ajax } from '../src/ajax.js';
-
 
 const DEBOUNCE_DELAY = 200; // 0.2 second
 const DEFAULT_CID = 5126;
@@ -45,17 +43,14 @@ function buildApiUrl(cid, endpoint) {
 }
 
 /**
- * Send data to API endpoint
+ * Send data to API endpoint using sendBeacon
  * @param {string} url - API endpoint URL
  * @param {Object} payload - Data to send
  */
 function sendToApi(url, payload) {
-  ajax(
-    url,
-    null,
-    JSON.stringify(payload),
-    { method: 'POST', contentType: 'application/json' }
-  );
+  const data = JSON.stringify(payload);
+  const blob = new Blob([data], { type: 'application/json' });
+  navigator.sendBeacon(url, blob);
 }
 
 /**
@@ -229,9 +224,7 @@ const imAnalyticsAdapter = Object.assign(
         auctionCount: cache.requestBidsData.auctions.length,
         auctions: cache.requestBidsData.auctions
       };
-
       sendToApi(buildApiUrl(cid, 'request'), payload);
-
       cache.requestBidsData = null;
       cache.requestBidsTimer = null;
     },
@@ -246,9 +239,7 @@ const imAnalyticsAdapter = Object.assign(
       if (!cache.wonBidsData || cache.wonBidsData.pageUrl !== pageUrl) {
         cache.wonBidsData = initializeWonBidsCache(pageUrl);
       }
-
       cache.wonBidsData.wonBids.push(transformBidWonData(bidWonArgs));
-
       cache.wonBidsTimer = clearTimer(cache.wonBidsTimer);
       cache.wonBidsTimer = setTimeout(() => {
         this.sendWonBidsData();
@@ -268,9 +259,7 @@ const imAnalyticsAdapter = Object.assign(
         wonBidCount: cache.wonBidsData.wonBids.length,
         wonBids: cache.wonBidsData.wonBids
       };
-
       sendToApi(buildApiUrl(cid, 'won'), payload);
-
       cache.wonBidsData = null;
       cache.wonBidsTimer = null;
     }
