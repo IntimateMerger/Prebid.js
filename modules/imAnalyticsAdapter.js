@@ -2,6 +2,7 @@ import { logMessage } from '../src/utils.js';
 import adapter from '../libraries/analyticsAdapter/AnalyticsAdapter.js';
 import adapterManager from '../src/adapterManager.js';
 import { EVENTS } from '../src/constants.js';
+import { sendBeacon } from '../src/ajax.js';
 
 const DEBOUNCE_DELAY = 200; // 0.2 second
 const DEFAULT_CID = 5126;
@@ -42,7 +43,7 @@ function buildApiUrl(cid, endpoint) {
 function sendToApi(url, payload) {
   const data = JSON.stringify(payload);
   const blob = new Blob([data], { type: 'application/json' });
-  navigator.sendBeacon(url, blob);
+  sendBeacon(url, blob);
 }
 
 /**
