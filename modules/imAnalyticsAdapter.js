@@ -134,7 +134,7 @@ const imAnalyticsAdapter = Object.assign(
     },
 
     /**
-     * Transform auction data for payload
+     * Transform auction data for auction init event
      * @param {Object} auctionArgs - Auction arguments
      * @returns {Object} Transformed auction data
      */
@@ -187,7 +187,7 @@ const imAnalyticsAdapter = Object.assign(
     },
 
     /**
-     * Transform won bids data for payload
+     * Transform won bids data for bid won event
      * @param {Object} bidWonArgs - Bid won arguments
      * @returns {Object} Transformed won bids data
      */
