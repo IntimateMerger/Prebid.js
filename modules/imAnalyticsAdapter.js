@@ -4,7 +4,7 @@ import adapterManager from '../src/adapterManager.js';
 import { EVENTS } from '../src/constants.js';
 import { sendBeacon } from '../src/ajax.js';
 
-const BID_WON_TIMEOUT = 800; // 0.8 second for initial batch
+const DEFAULT_BID_WON_TIMEOUT = 800; // 0.8 second for initial batch
 const DEFAULT_CID = 5126;
 const API_BASE_URL = 'https://b6.im-apps.net/bids';
 
@@ -16,13 +16,10 @@ const EMPTY_CONSENT_DATA = {
   gdprApplies: undefined,
   gdpr: undefined,
   usp: undefined,
-  gpp: undefined
 };
 
 const cache = {
-  auctions: {},
-  wonBidsData: {},
-  wonBidsTimer: null
+  auctions: {}
 };
 
 /**
@@ -35,14 +32,23 @@ function getCid(options) {
 }
 
 /**
+ * Get Bid Won Timeout from adapter options
+ * @param {Object} options - Adapter options
+ * @returns {number} Timeout in ms or default value
+ */
+function getBidWonTimeout(options) {
+  return (options && options.bidWonTimeout) || DEFAULT_BID_WON_TIMEOUT;
+}
+
+/**
  * Build API URL with CID from options
  * @param {Object} options - Adapter options
  * @param {string} endpoint - Endpoint path
  * @returns {string} Full API URL
  */
-function buildApiUrlWithOptions(options, endpoint) {
+function buildApiUrlWithOptions(options, endpoint, auctionId) {
   const cid = getCid(options);
-  return `${API_BASE_URL}/${cid}/${endpoint}`;
+  return `${API_BASE_URL}/${cid}/${endpoint}/${auctionId}`;
 }
 
 /**
@@ -81,13 +87,11 @@ function getConsentData(bidderRequests) {
   const request = bidderRequests[0];
   const gdprConsent = request.gdprConsent || {};
   const uspConsent = request.uspConsent;
-  const gppConsent = request.gppConsent || {};
 
   return {
     gdprApplies: gdprConsent.gdprApplies,
     gdpr: gdprConsent.consentString,
-    usp: uspConsent,
-    gpp: gppConsent.gppString
+    usp: uspConsent
   };
 }
 
@@ -108,17 +112,7 @@ function extractMetaFields(meta) {
   };
 }
 
-/**
- * Mark auctions as sent
- * @param {Array} auctionIds - Auction IDs to mark
- */
-function markAuctionsAsSent(auctionIds) {
-  auctionIds.forEach(auctionId => {
-    if (cache.auctions[auctionId]) {
-      cache.auctions[auctionId].sendStatus |= WON_SENT;
-    }
-  });
-}
+
 
 // IM Analytics Adapter implementation
 const imAnalyticsAdapter = Object.assign(
@@ -144,8 +138,22 @@ const imAnalyticsAdapter = Object.assign(
 
         case EVENTS.AUCTION_END:
           logMessage('IM Analytics: AUCTION_END', args);
-          this.scheduleWonBidsSend();
+          this.scheduleWonBidsSend(args.auctionId);
           break;
+      }
+    },
+
+    /**
+     * Schedule won bids send for a specific auction
+     * @param {string} auctionId - Auction ID
+     */
+    scheduleWonBidsSend(auctionId) {
+      const auction = cache.auctions[auctionId];
+      if (auction) {
+        auction.wonBidsTimer = clearTimer(auction.wonBidsTimer);
+        auction.wonBidsTimer = setTimeout(() => {
+          this.sendWonBidsData(auctionId);
+        }, getBidWonTimeout(this.options));
       }
     },
 
@@ -158,20 +166,13 @@ const imAnalyticsAdapter = Object.assign(
 
       cache.auctions[args.auctionId] = {
         consentData: consentData,
-        sendStatus: 0
+        sendStatus: 0,
+        wonBids: [],
+        wonBidsTimer: null,
+        auctionInitTimestamp: args.timestamp
       };
 
       this.handleAucInitData(args, consentData);
-    },
-
-    /**
-     * Schedule won bids send after timeout
-     */
-    scheduleWonBidsSend() {
-      cache.wonBidsTimer = clearTimer(cache.wonBidsTimer);
-      cache.wonBidsTimer = setTimeout(() => {
-        this.sendWonBidsData();
-      }, BID_WON_TIMEOUT);
     },
 
     /**
@@ -184,11 +185,10 @@ const imAnalyticsAdapter = Object.assign(
         pageUrl: window.location.href,
         referrer: document.referrer || '',
         consentData,
-        timestamp: Date.now(),
-        auction: this.transformAucInitData(auctionArgs)
+        ...this.transformAucInitData(auctionArgs)
       };
 
-      sendToApi(buildApiUrlWithOptions(this.options, 'pv'), payload);
+      sendToApi(buildApiUrlWithOptions(this.options, 'pv', auctionArgs.auctionId), payload);
     },
 
     /**
@@ -198,10 +198,7 @@ const imAnalyticsAdapter = Object.assign(
      */
     transformAucInitData(auctionArgs) {
       return {
-        auctionId: auctionArgs.auctionId,
-        pv: auctionArgs.pv,
         timestamp: auctionArgs.timestamp,
-        adUnitCodes: auctionArgs.adUnitCodes || [],
         adUnitCount: (auctionArgs.adUnits || []).length
       };
     },
@@ -232,12 +229,12 @@ const imAnalyticsAdapter = Object.assign(
      */
     sendIndividualWonBid(auctionId, bidWonArgs, consentData) {
       const wonBid = this.transformWonBidsData(bidWonArgs);
+      const auction = cache.auctions[auctionId];
 
-      sendToApi(buildApiUrlWithOptions(this.options, 'won'), {
+      sendToApi(buildApiUrlWithOptions(this.options, 'won', auctionId), {
         consentData: consentData || getConsentData(null),
-        wonBids: {
-          [auctionId]: [wonBid]
-        }
+        timestamp: auction.auctionInitTimestamp,
+        wonBids: [wonBid]
       });
     },
 
@@ -247,10 +244,14 @@ const imAnalyticsAdapter = Object.assign(
      * @param {Object} bidWonArgs - Bid won arguments
      */
     cacheWonBid(auctionId, bidWonArgs) {
-      if (!cache.wonBidsData[auctionId]) {
-        cache.wonBidsData[auctionId] = [];
+      const auction = cache.auctions[auctionId];
+      if (auction) {
+        // Deduplicate based on requestId
+        if (auction.wonBids.some(bid => bid.requestId === bidWonArgs.requestId)) {
+          return;
+        }
+        auction.wonBids.push(this.transformWonBidsData(bidWonArgs));
       }
-      cache.wonBidsData[auctionId].push(this.transformWonBidsData(bidWonArgs));
     },
 
     /**
@@ -262,34 +263,36 @@ const imAnalyticsAdapter = Object.assign(
       const meta = bidWonArgs.meta || {};
 
       return {
-        auctionId: bidWonArgs.auctionId,
-        timestamp: Date.now(),
-        bidder: bidWonArgs.bidder,
+        requestId: bidWonArgs.requestId,
         bidderCode: bidWonArgs.bidderCode,
         ...extractMetaFields(meta)
       };
     },
 
+
     /**
      * Send accumulated won bids data to API - batch send after 800ms
+     * @param {string} auctionId - Auction ID to send data for
      */
-    sendWonBidsData() {
-      if (Object.keys(cache.wonBidsData).length === 0) return;
+    sendWonBidsData(auctionId) {
+      const auction = cache.auctions[auctionId];
+      if (!auction || !auction.wonBids || auction.wonBids.length === 0 || (auction.sendStatus & WON_SENT)) {
+        return;
+      }
 
-      const auctionIds = Object.keys(cache.wonBidsData);
-      const firstAuction = cache.auctions[auctionIds[0]];
-      const consentData = firstAuction ? firstAuction.consentData : getConsentData(null);
+      const consentData = auction.consentData || getConsentData(null);
+      const timestamp = auction.auctionInitTimestamp || Date.now();
 
-      sendToApi(buildApiUrlWithOptions(this.options, 'won'), {
+      sendToApi(buildApiUrlWithOptions(this.options, 'won', auctionId), {
         consentData,
-        wonBids: cache.wonBidsData
+        timestamp,
+        wonBids: auction.wonBids
       });
 
-      markAuctionsAsSent(auctionIds);
-
-      // Clear cache
-      cache.wonBidsData = {};
-      cache.wonBidsTimer = null;
+      // Clear cached bids after sending to prevent duplicates
+      auction.wonBids = [];
+      auction.sendStatus |= WON_SENT;
+      auction.wonBidsTimer = null;
     }
   }
 );
