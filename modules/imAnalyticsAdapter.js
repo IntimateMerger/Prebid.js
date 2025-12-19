@@ -112,8 +112,6 @@ function extractMetaFields(meta) {
   };
 }
 
-
-
 // IM Analytics Adapter implementation
 const imAnalyticsAdapter = Object.assign(
   adapter({ analyticsType: 'endpoint' }),
@@ -268,7 +266,6 @@ const imAnalyticsAdapter = Object.assign(
         ...extractMetaFields(meta)
       };
     },
-
 
     /**
      * Send accumulated won bids data to API - batch send after 800ms
