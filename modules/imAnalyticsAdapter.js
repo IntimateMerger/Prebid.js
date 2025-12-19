@@ -213,11 +213,11 @@ const imAnalyticsAdapter = Object.assign(
 
       if (!auction) return;
 
+      this.cacheWonBid(auctionId, bidWonArgs);
+
       // If initial batch has been sent, send immediately
       if (auction.sendStatus & WON_SENT) {
         this.sendIndividualWonBid(auctionId, bidWonArgs, auction.consentData);
-      } else {
-        this.cacheWonBid(auctionId, bidWonArgs);
       }
     },
 
@@ -290,7 +290,6 @@ const imAnalyticsAdapter = Object.assign(
       });
 
       // Clear cached bids after sending to prevent duplicates
-      auction.wonBids = [];
       auction.sendStatus |= WON_SENT;
       auction.wonBidsTimer = null;
     }
