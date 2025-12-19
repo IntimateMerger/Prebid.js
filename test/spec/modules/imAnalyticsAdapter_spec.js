@@ -166,8 +166,6 @@ describe('imAnalyticsAdapter', function() {
 
         expect(requests.length).to.equal(2);
       });
-
-
     });
 
     describe('AUCTION_END', function() {
