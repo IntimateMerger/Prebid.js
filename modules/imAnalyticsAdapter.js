@@ -4,7 +4,7 @@ import adapterManager, { coppaDataHandler, gdprDataHandler, gppDataHandler, uspD
 import { EVENTS } from '../src/constants.js';
 import { sendBeacon } from '../src/ajax.js';
 
-const DEFAULT_BID_WON_TIMEOUT = 800; // 0.8 second for initial batch
+const DEFAULT_BID_WON_TIMEOUT = 1500; // 1.5 second for initial batch
 const DEFAULT_CID = 5126;
 const API_BASE_URL = 'https://b6.im-apps.net/bid';
 
