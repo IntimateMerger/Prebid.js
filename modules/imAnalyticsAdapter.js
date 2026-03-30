@@ -78,8 +78,10 @@ function getConsentData() {
     gdpr: gdprConsent.gdprApplies ? 1 : 0,
     usp: uspConsent,
     coppa: Number(coppaDataHandler.getCoppa()),
-    gpp: gppConsent.applicableSections || [],
-    gppString: gppConsent.gppString
+    ...(gppConsent.applicableSections && gppConsent.gppString && {
+      gpp: gppConsent.applicableSections.toString(),
+      gppStr: gppConsent.gppString
+    })
   };
 }
 
