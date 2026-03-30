@@ -8,8 +8,6 @@ const DEFAULT_BID_WON_TIMEOUT = 800; // 0.8 second for initial batch
 const DEFAULT_CID = 5126;
 const API_BASE_URL = 'https://b6.im-apps.net/bid';
 
-// Send status flags
-const WON_SENT = 1;
 
 const cache = {
   auctions: {}
@@ -77,11 +75,10 @@ function getConsentData() {
   const uspConsent = uspDataHandler.getConsentData();
   const gppConsent = gppDataHandler.getConsentData() || {};
   return {
-    gdprApplies: gdprConsent.gdprApplies,
-    gdpr: gdprConsent.consentString,
+    gdpr: gdprConsent.gdprApplies ? 1 : 0,
     usp: uspConsent,
     coppa: Number(coppaDataHandler.getCoppa()),
-    gpp: gppConsent.applicableSections,
+    gpp: gppConsent.applicableSections || [],
     gppString: gppConsent.gppString
   };
 }
@@ -93,13 +90,13 @@ function getConsentData() {
  */
 function extractMetaFields(meta) {
   return {
-    advertiserDomains: meta.advertiserDomains || [],
-    primaryCatId: meta.primaryCatId || '',
-    secondaryCatIds: meta.secondaryCatIds || [],
-    advertiserName: meta.advertiserName || '',
-    advertiserId: meta.advertiserId || '',
-    brandName: meta.brandName || '',
-    brandId: meta.brandId || ''
+    domains: meta.advertiserDomains || [],
+    catId: meta.primaryCatId || '',
+    catIds: meta.secondaryCatIds || [],
+    aid: meta.advertiserId || '',
+    advertiser: meta.advertiserName || '',
+    bid: meta.brandId || '',
+    brand: meta.brandName || '',
   };
 }
 
@@ -154,8 +151,8 @@ const imAnalyticsAdapter = Object.assign(
       const consentData = getConsentData();
 
       cache.auctions[args.auctionId] = {
-        consentData: consentData,
-        sendStatus: 0,
+        consentData,
+        wonSent: false,
         wonBids: [],
         wonBidsTimer: null,
         auctionInitTimestamp: args.timestamp
@@ -171,10 +168,10 @@ const imAnalyticsAdapter = Object.assign(
     handleAucInitData(auctionArgs) {
       const consentData = cache.auctions[auctionArgs.auctionId].consentData;
       const payload = {
-        pageUrl: window.location.href,
-        url: document.referrer || '',
-        consentData,
-        ...this.transformAucInitData(auctionArgs)
+        url: window.location.href,
+        ref: document.referrer || '',
+        ...this.transformAucInitData(auctionArgs),
+        consentData
       };
 
       sendToApi(buildApiUrlWithOptions(this.options, 'pv', auctionArgs.auctionId), payload);
@@ -188,7 +185,7 @@ const imAnalyticsAdapter = Object.assign(
     transformAucInitData(auctionArgs) {
       return {
         ts: auctionArgs.timestamp,
-        adUnitCount: (auctionArgs.adUnits || []).length
+        adUnit: (auctionArgs.adUnits || []).length
       };
     },
 
@@ -205,26 +202,9 @@ const imAnalyticsAdapter = Object.assign(
       this.cacheWonBid(auctionId, bidWonArgs);
 
       // If initial batch has been sent, send immediately
-      if (auction.sendStatus & WON_SENT) {
-        this.sendIndividualWonBid(auctionId, bidWonArgs, auction.consentData);
+      if (auction.wonSent) {
+        this.sendWonBidsData(auctionId);
       }
-    },
-
-    /**
-     * Send individual won bid immediately
-     * @param {string} auctionId - Auction ID
-     * @param {Object} bidWonArgs - Bid won arguments
-     * @param {Object} consentData - Consent data
-     */
-    sendIndividualWonBid(auctionId, bidWonArgs, consentData) {
-      const wonBid = this.transformWonBidsData(bidWonArgs);
-      const auction = cache.auctions[auctionId];
-
-      sendToApi(buildApiUrlWithOptions(this.options, 'won', auctionId), {
-        consentData: consentData,
-        ts: auction.auctionInitTimestamp,
-        bids: [wonBid]
-      });
     },
 
     /**
@@ -264,21 +244,22 @@ const imAnalyticsAdapter = Object.assign(
      */
     sendWonBidsData(auctionId) {
       const auction = cache.auctions[auctionId];
-      if (!auction || !auction.wonBids || auction.wonBids.length === 0) {
+      if (!auction || auction.wonBids.length === 0) {
         return;
       }
 
       const consentData = auction.consentData;
       const ts = auction.auctionInitTimestamp || Date.now();
 
-      // Clear cached bids after sending to prevent duplicates
-      auction.sendStatus |= WON_SENT;
+      auction.wonSent = true;
       auction.wonBidsTimer = null;
+      const bids = auction.wonBids;
+      auction.wonBids = [];
 
       sendToApi(buildApiUrlWithOptions(this.options, 'won', auctionId), {
         consentData,
         ts,
-        bids: auction.wonBids
+        bids
       });
     }
   }
