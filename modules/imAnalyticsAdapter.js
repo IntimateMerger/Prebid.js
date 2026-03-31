@@ -160,20 +160,18 @@ const imAnalyticsAdapter = Object.assign(
         auctionInitTimestamp: args.timestamp
       };
 
-      this.handleAucInitData(args);
+      this.handleAucInitData(args, consentData);
     },
-
     /**
      * Handle auction init data - send immediately for PV tracking
      * @param {Object} auctionArgs - Auction arguments
      */
-    handleAucInitData(auctionArgs) {
-      const consentData = cache.auctions[auctionArgs.auctionId].consentData;
+    handleAucInitData(args, consent) {
       const payload = {
         url: window.location.href,
         ref: document.referrer || '',
-        ...this.transformAucInitData(auctionArgs),
-        consentData
+        ...this.transformAucInitData(args),
+        consent
       };
 
       sendToApi(buildApiUrlWithOptions(this.options, 'pv', auctionArgs.auctionId), payload);
@@ -250,18 +248,16 @@ const imAnalyticsAdapter = Object.assign(
         return;
       }
 
-      const consentData = auction.consentData;
+      const consent = auction.consentData;
       const ts = auction.auctionInitTimestamp || Date.now();
-
       auction.wonSent = true;
       auction.wonBidsTimer = null;
       const bids = auction.wonBids;
       auction.wonBids = [];
-
       sendToApi(buildApiUrlWithOptions(this.options, 'won', auctionId), {
-        consentData,
+        bids,
         ts,
-        bids
+        consent,
       });
     }
   }
