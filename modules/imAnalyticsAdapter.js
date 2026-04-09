@@ -1,4 +1,4 @@
-import { logMessage } from '../src/utils.js';
+import { logMessage, deepAccess } from '../src/utils.js';
 import adapter from '../libraries/analyticsAdapter/AnalyticsAdapter.js';
 import adapterManager, { coppaDataHandler, gdprDataHandler, gppDataHandler, uspDataHandler } from '../src/adapterManager.js';
 import { EVENTS } from '../src/constants.js';
@@ -62,12 +62,10 @@ function clearTimer(timer) {
   if (timer) {
     clearTimeout(timer);
   }
-  return null;
 }
 
 /**
  * Get consent data from bidder requests
- * @param {Array} bidderRequests - Bidder requests array
  * @returns {Object} Consent data object
  */
 function getConsentData() {
@@ -126,7 +124,7 @@ const imAnalyticsAdapter = Object.assign(
 
         case EVENTS.AUCTION_END:
           logMessage('IM Analytics: AUCTION_END', args);
-          this.handleActionEnd(args.auctionId);
+          this.handleAuctionEnd(args.auctionId);
           break;
       }
     },
@@ -135,10 +133,10 @@ const imAnalyticsAdapter = Object.assign(
      * Handle auction end event - schedule won bids send
      * @param {string} auctionId - Auction ID
      */
-    handleActionEnd(auctionId) {
+    handleAuctionEnd(auctionId) {
       const auction = cache.auctions[auctionId];
       if (auction) {
-        auction.wonBidsTimer = clearTimer(auction.wonBidsTimer);
+        clearTimer(auction.wonBidsTimer);
         auction.wonBidsTimer = setTimeout(() => {
           this.sendWonBidsData(auctionId);
         }, getBidWonTimeout(this.options));
@@ -164,17 +162,19 @@ const imAnalyticsAdapter = Object.assign(
     },
     /**
      * Handle auction init data - send immediately for PV tracking
-     * @param {Object} auctionArgs - Auction arguments
+     * @param {Object} args - Auction arguments
+     * @param {Object} consent - Consent data
      */
     handleAucInitData(args, consent) {
       const payload = {
         url: window.location.href,
         ref: document.referrer || '',
         ...this.transformAucInitData(args),
-        consent
+        consent,
+        userIds: Object.keys(deepAccess(args.bidderRequests, '0.bids.0.userId', {}))
       };
 
-      sendToApi(buildApiUrlWithOptions(this.options, 'pv', auctionArgs.auctionId), payload);
+      sendToApi(buildApiUrlWithOptions(this.options, 'pv', args.auctionId), payload);
     },
 
     /**

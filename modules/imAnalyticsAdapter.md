@@ -5,25 +5,32 @@ Module Name: IM Analytics Adapter
 Module Type: Analytics Adapter
 ```
 
-# Description
+#### About
 
-Analytics adapter for Intimate Merger platform. This adapter tracks auction events and bid won data for analytics purposes.
+This analytics adapter collects data about auction events and bid won data on your site for analytics purposes.
 
-The adapter monitors the following Prebid.js events:
-- `AUCTION_INIT`: Tracks page views and auction initialization
-- `BID_WON`: Tracks winning bids with metadata
-- `AUCTION_END`: Triggers batch sending of won bids data
+The publisher must work with our account management team to obtain a
+Customer ID (CID) and enable Analytics for their account.
+To get a CID, you can reach out to your account manager or sign up via
+<https://lp.intimatemerger.com/im-uid>.
 
-# Configuration Options
+If you are an existing publisher and you already use
+[IM-UID](https://docs.prebid.org/dev-docs/modules/userid-submodules/imuid.html),
+you can use the same CID for this analytics adapter.
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `cid` | number | No | 5126 | Client ID for API endpoint |
-| `bidWonTimeout` | number | No | 800 | Timeout in milliseconds before sending batched won bids |
+By enabling this adapter, you agree to Intimate Merger's privacy policy at
+<https://corp.intimatemerger.com/privacypolicy-en/>.
 
-# Example Configuration
+#### Analytics Options
 
-## Basic Configuration
+| Parameter | Scope | Type | Default | Description |
+|-----------|-------|------|---------|-------------|
+| `cid` | optional | number | 5126 | Customer ID provided by Intimate Merger |
+| `bidWonTimeout` | optional | number | 1500 | Timeout in milliseconds before sending batched won bids |
+
+#### Example Configuration
+
+##### Basic Configuration
 
 ```javascript
 pbjs.enableAnalytics({
@@ -31,7 +38,7 @@ pbjs.enableAnalytics({
 });
 ```
 
-## Configuration with Custom CID
+##### Configuration with Custom CID
 
 ```javascript
 pbjs.enableAnalytics({
@@ -42,7 +49,7 @@ pbjs.enableAnalytics({
 });
 ```
 
-## Configuration with Custom Timeout
+##### Configuration with Custom Timeout
 
 ```javascript
 pbjs.enableAnalytics({
