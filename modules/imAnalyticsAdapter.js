@@ -171,7 +171,7 @@ const imAnalyticsAdapter = Object.assign(
         ref: document.referrer || '',
         ...this.transformAucInitData(args),
         consent,
-        userIds: Object.keys(deepAccess(args.bidderRequests, '0.bids.0.userId', {}))
+        uid: deepAccess(args.bidderRequests, '0.bids.0.userId.imuid')
       };
 
       sendToApi(buildApiUrlWithOptions(this.options, 'pv', args.auctionId), payload);

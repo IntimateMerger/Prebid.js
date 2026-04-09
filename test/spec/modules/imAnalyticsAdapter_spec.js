@@ -104,15 +104,14 @@ describe('imAnalyticsAdapter', function() {
         expect(requests[0].url).to.include('/pv');
       });
 
-      it('should include userIds from bidderRequests in pv payload', async function() {
+      it('should include imuid as uid in pv payload', async function() {
         const args = {
           auctionId: 'auc-1',
           timestamp: 1234567890,
           bidderRequests: [{
             bids: [{
               userId: {
-                imuid: 'test-imuid',
-                tdid: 'test-tdid'
+                imuid: 'test-imuid'
               }
             }]
           }],
@@ -126,10 +125,10 @@ describe('imAnalyticsAdapter', function() {
 
         expect(requests.length).to.equal(1);
         const payload = JSON.parse(await requests[0].data.text());
-        expect(payload.userIds).to.deep.equal(['imuid', 'tdid']);
+        expect(payload.uid).to.equal('test-imuid');
       });
 
-      it('should include empty userIds when no userId modules are active', async function() {
+      it('should set uid to undefined when imuid is not available', async function() {
         const args = {
           auctionId: 'auc-2',
           timestamp: 1234567890,
@@ -144,7 +143,7 @@ describe('imAnalyticsAdapter', function() {
 
         expect(requests.length).to.equal(1);
         const payload = JSON.parse(await requests[0].data.text());
-        expect(payload.userIds).to.deep.equal([]);
+        expect(payload.uid).to.be.undefined;
       });
 
       it('should include consent data in pv payload', async function() {
