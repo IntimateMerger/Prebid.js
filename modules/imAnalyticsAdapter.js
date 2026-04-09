@@ -149,29 +149,29 @@ const imAnalyticsAdapter = Object.assign(
      */
     handleAuctionInit(args) {
       const consentData = getConsentData();
-
+      const imUid = deepAccess(args.bidderRequests, '0.bids.0.userId.imuid') ?? '';
       cache.auctions[args.auctionId] = {
+        imUid,
         consentData,
         wonSent: false,
         wonBids: [],
         wonBidsTimer: null,
         auctionInitTimestamp: args.timestamp
       };
-
-      this.handleAucInitData(args, consentData);
+      this.handleAucInitData(args, imUid, consentData);
     },
     /**
      * Handle auction init data - send immediately for PV tracking
      * @param {Object} args - Auction arguments
      * @param {Object} consent - Consent data
      */
-    handleAucInitData(args, consent) {
+    handleAucInitData(args, uid, consent) {
       const payload = {
         url: window.location.href,
         ref: document.referrer || '',
         ...this.transformAucInitData(args),
-        consent,
-        uid: deepAccess(args.bidderRequests, '0.bids.0.userId.imuid')
+        uid,
+        consent
       };
 
       sendToApi(buildApiUrlWithOptions(this.options, 'pv', args.auctionId), payload);
@@ -239,7 +239,7 @@ const imAnalyticsAdapter = Object.assign(
     },
 
     /**
-     * Send accumulated won bids data to API - batch send after 800ms
+     * Send accumulated won bids data to API - batch send after 1500ms
      * @param {string} auctionId - Auction ID to send data for
      */
     sendWonBidsData(auctionId) {
@@ -253,10 +253,12 @@ const imAnalyticsAdapter = Object.assign(
       auction.wonSent = true;
       auction.wonBidsTimer = null;
       const bids = auction.wonBids;
+      const uid = auction.imUid;
       auction.wonBids = [];
       sendToApi(buildApiUrlWithOptions(this.options, 'won', auctionId), {
         bids,
         ts,
+        uid,
         consent,
       });
     }

@@ -128,7 +128,7 @@ describe('imAnalyticsAdapter', function() {
         expect(payload.uid).to.equal('test-imuid');
       });
 
-      it('should set uid to undefined when imuid is not available', async function() {
+      it('should set uid to empty string when imuid is not available', async function() {
         const args = {
           auctionId: 'auc-2',
           timestamp: 1234567890,
@@ -143,7 +143,7 @@ describe('imAnalyticsAdapter', function() {
 
         expect(requests.length).to.equal(1);
         const payload = JSON.parse(await requests[0].data.text());
-        expect(payload.uid).to.be.undefined;
+        expect(payload.uid).to.equal('');
       });
 
       it('should include consent data in pv payload', async function() {
@@ -295,6 +295,36 @@ describe('imAnalyticsAdapter', function() {
         clock.tick(BID_WON_TIMEOUT + 10);
         expect(requests.length).to.equal(1);
         expect(requests[0].url).to.include('/won');
+      });
+
+      it('should include uid in won payload', async function() {
+        const clock = sandbox.useFakeTimers();
+
+        imAnalyticsAdapter.track({
+          eventType: EVENTS.AUCTION_INIT,
+          args: {
+            auctionId: 'auc-1',
+            bidderRequests: [{
+              bids: [{
+                userId: { imuid: 'test-imuid' }
+              }]
+            }]
+          }
+        });
+        requests = [];
+
+        imAnalyticsAdapter.track({
+          eventType: EVENTS.BID_WON,
+          args: { ...bidWonArgs, requestId: 'req-1' }
+        });
+        imAnalyticsAdapter.track({
+          eventType: EVENTS.AUCTION_END,
+          args: { auctionId: 'auc-1' }
+        });
+
+        clock.tick(BID_WON_TIMEOUT + 10);
+        const payload = JSON.parse(await requests[0].data.text());
+        expect(payload.uid).to.equal('test-imuid');
       });
 
       it('should not send if no won bids', function() {
