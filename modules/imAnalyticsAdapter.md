@@ -9,7 +9,7 @@ Module Type: Analytics Adapter
 
 Analytics Adapter for IM-DMP.
 
-Please visit intimatemerger.com/im-uid and request your Customer ID to get started.
+Please visit [intimatemerger.com/im-uid](https://intimatemerger.com/r/im-uid) and request your Customer ID to get started.
 
 If you are an existing publisher and you already use
 [IM-UID](https://docs.prebid.org/dev-docs/modules/userid-submodules/imuid.html),
@@ -23,7 +23,7 @@ By enabling this adapter, you agree to Intimate Merger's privacy policy at
 | Parameter | Scope | Type | Example | Description |
 |-----------|-------|------|---------|-------------|
 | `cid` | required | number | 5126 | The Customer ID provided by Intimate Merger. |
-| `bidWonTimeout` | optional | number | 1500 | Wait time in milliseconds before sending batched requests. (Default: 1500)  |
+| `waitTimeout` | optional | number | 1500 | Wait time in milliseconds before sending batched requests. (Default: 1500)  |
 
 #### Example Configuration
 
@@ -34,7 +34,7 @@ pbjs.enableAnalytics({
         /* Required: Customer ID */
         cid: 5126,
         /* Optional: Wait 2 seconds */
-        bidWonTimeout: 2000
+        waitTimeout: 2000
     }
 });
 ```

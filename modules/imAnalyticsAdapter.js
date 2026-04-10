@@ -27,8 +27,8 @@ function getCid(options) {
  * @param {Object} options - Adapter options
  * @returns {number} Timeout in ms or default value
  */
-function getBidWonTimeout(options) {
-  return (options && options.bidWonTimeout) || DEFAULT_BID_WON_TIMEOUT;
+function getWaitTimeout(options) {
+  return (options && options.waitTimeout) || DEFAULT_BID_WON_TIMEOUT;
 }
 
 /**
